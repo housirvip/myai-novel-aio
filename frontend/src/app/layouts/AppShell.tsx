@@ -79,11 +79,11 @@ export function AppShell() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/50 animate-in fade-in-0 duration-200"
             onClick={() => setMobileMenuOpen(false)}
             role="presentation"
           />
-          <div className="relative z-50 h-full w-56">
+          <div className="relative z-50 h-full w-56 animate-in slide-in-from-left duration-200">
             <AppSidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} />
           </div>
         </div>
