@@ -126,8 +126,11 @@ pub fn run() {
             check_health,
             open_console,
         ])
-        .on_window_event(move |_window, event| {
+        .on_window_event(move |window, event| {
             if let tauri::WindowEvent::Destroyed = event {
+                if window.label() != "main" {
+                    return;
+                }
                 let mgr = manager_clone.clone();
                 tauri::async_runtime::spawn(async move {
                     let mut mgr = mgr.lock().await;

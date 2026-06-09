@@ -118,12 +118,10 @@ impl BackendManager {
         self.port = port;
 
         let binary = Self::find_server_binary(app)?;
-        let backend_dir = Self::find_backend_dir(&binary);
+        let working_dir = Self::resolve_working_dir(app, &binary)?;
 
         let mut cmd = Command::new(&binary);
-        if let Some(ref dir) = backend_dir {
-            cmd.current_dir(dir);
-        }
+        cmd.current_dir(&working_dir);
         cmd.env("SERVER_PORT", port.to_string())
             .env("SERVER_HOST", "127.0.0.1")
             .env("CORS_ALLOWED_ORIGINS", "http://127.0.0.1:1420,http://localhost:1420")
@@ -230,10 +228,54 @@ impl BackendManager {
         self.start(app, port).await
     }
 
+    fn resolve_working_dir(app: &AppHandle, binary: &PathBuf) -> Result<PathBuf, String> {
+        if let Some(dir) = Self::find_backend_dir(binary) {
+            return Ok(dir);
+        }
+
+        let data_dir = app.path().app_data_dir()
+            .map_err(|e| format!("无法获取应用数据目录: {}", e))?;
+        std::fs::create_dir_all(data_dir.join("data"))
+            .map_err(|e| format!("无法创建数据目录: {}", e))?;
+        std::fs::create_dir_all(data_dir.join("logs"))
+            .map_err(|e| format!("无法创建日志目录: {}", e))?;
+
+        let env_path = data_dir.join(".env");
+        if !env_path.exists() {
+            let secret = Self::generate_secret();
+            let default_env = format!(
+                "DB_CLIENT=sqlite\n\
+                 DB_SQLITE_PATH=./data/novel.db\n\
+                 LOG_DIR=./logs\n\
+                 LOG_LEVEL=info\n\
+                 LLM_PROVIDER=mock\n\
+                 AUTH_SESSION_SECRET={}\n",
+                secret
+            );
+            std::fs::write(&env_path, default_env)
+                .map_err(|e| format!("无法写入默认 .env: {}", e))?;
+        }
+
+        Ok(data_dir)
+    }
+
+    fn generate_secret() -> String {
+        let mut buf = [0u8; 32];
+        getrandom::getrandom(&mut buf).expect("failed to get random bytes");
+        buf.iter().map(|b| format!("{:02x}", b)).collect()
+    }
+
     pub fn resolve_backend_dir(app: &AppHandle) -> Result<PathBuf, String> {
-        let binary = Self::find_server_binary(app)?;
-        Self::find_backend_dir(&binary)
-            .ok_or_else(|| "无法找到 backend 目录".into())
+        if let Ok(binary) = Self::find_server_binary(app) {
+            if let Some(dir) = Self::find_backend_dir(&binary) {
+                return Ok(dir);
+            }
+        }
+        let data_dir = app.path().app_data_dir()
+            .map_err(|e| format!("无法获取应用数据目录: {}", e))?;
+        std::fs::create_dir_all(&data_dir)
+            .map_err(|e| format!("无法创建应用数据目录: {}", e))?;
+        Ok(data_dir)
     }
 }
 
