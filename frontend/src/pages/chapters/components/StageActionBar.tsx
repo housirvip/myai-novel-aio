@@ -30,6 +30,7 @@ export function StageActionBar({
   activeWorkflowTaskType,
   saveStageMutationPending,
   editorContentEmpty,
+  isDirty,
   onOpenInitialPlanDialog,
   onStartWorkflow,
   onRerunPlan,
@@ -111,7 +112,7 @@ export function StageActionBar({
         {stageIsEditable && (
           <button
             onClick={onSaveStage}
-            disabled={saveStageMutationPending || editorContentEmpty || isAnyWorkflowBusy}
+            disabled={saveStageMutationPending || editorContentEmpty || isAnyWorkflowBusy || !isDirty}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
           >
             {saveStageMutationPending ? "保存中..." : `保存 ${activeStageKey}`}

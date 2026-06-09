@@ -152,6 +152,7 @@ export function useWorkflowEngine(params: {
       queryClient.invalidateQueries({ queryKey: queryKeys.latestChapterWorkflowTask(safeBookId, safeChapterNo, "review") }),
       queryClient.invalidateQueries({ queryKey: queryKeys.latestChapterWorkflowTask(safeBookId, safeChapterNo, "repair") }),
       queryClient.invalidateQueries({ queryKey: queryKeys.latestChapterWorkflowTask(safeBookId, safeChapterNo, "approve") }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.latestChapterWorkflowTask(safeBookId, safeChapterNo, "draft") }),
       queryClient.invalidateQueries({ queryKey: queryKeys.chapterWorkflowTasks(safeBookId, safeChapterNo, 20) }),
       queryClient.invalidateQueries({ queryKey: queryKeys.chapters(safeBookId) }),
     ]);
@@ -363,7 +364,6 @@ export function useWorkflowEngine(params: {
       }
 
       await refreshChapter();
-      if (action === "approve" && !dryRun) onWorkflowComplete("approve");
       setFeedback({
         kind: "success",
         title: dryRun ? `${action} 预演完成` : `${action} 执行完成`,

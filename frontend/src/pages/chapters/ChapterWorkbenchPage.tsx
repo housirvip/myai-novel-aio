@@ -67,6 +67,13 @@ export function ChapterWorkbenchPage() {
     setActiveTabState(tab);
     setSearchParams({ tab }, { replace: true });
   }, [setSearchParams]);
+
+  useEffect(() => {
+    const urlTab = searchParams.get("tab") as StageTab | null;
+    if (urlTab && validTabs.includes(urlTab) && urlTab !== activeTab) {
+      setActiveTabState(urlTab);
+    }
+  }, [searchParams]);
   const [selectedWorkflowTaskId, setSelectedWorkflowTaskId] = useState<number | null>(null);
 
   // ── Core queries ──────────────────────────────────────────────────
@@ -685,7 +692,7 @@ export function ChapterWorkbenchPage() {
                 disabled={!editor.stageIsEditable}
                 placeholder="阶段正文内容"
                 className={`min-h-[420px] w-full rounded-xl border border-border bg-card px-5 py-4 text-base leading-[1.85] outline-none ring-0 focus:border-primary disabled:bg-muted disabled:text-muted-foreground ${
-                  isContentStage ? "font-serif" : "text-foreground"
+                  `text-foreground ${isContentStage ? "font-serif" : ""}`
                 }`}
               />
               <div className="flex items-center justify-between rounded-b-xl border-x border-b border-border bg-muted px-4 py-1.5 -mt-2 text-[11px] text-muted-foreground">

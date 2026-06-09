@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import {
   buildResourceSavePayload,
@@ -247,11 +248,15 @@ export function useResourceSelection(params: {
 
   // ── Hydrate manualEntityRefs from chapter data ─────────────────────
   useEffect(() => {
+    const hydrateKey = `${bookId}:${chapterNo}`;
     if (!chapterData) {
+      if (hydratedManualEntityRefsKeyRef.current !== null && hydratedManualEntityRefsKeyRef.current !== hydrateKey) {
+        hydratedManualEntityRefsKeyRef.current = null;
+        setManualEntityRefs(emptyManualEntityRefs);
+      }
       return;
     }
 
-    const hydrateKey = `${bookId}:${chapterNo}`;
     if (hydratedManualEntityRefsKeyRef.current === hydrateKey) {
       return;
     }
@@ -302,6 +307,9 @@ export function useResourceSelection(params: {
     onSuccess: async () => {
       await refreshResourceQueries();
       setResourceEditor(null);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "资源保存失败");
     },
   });
 
