@@ -37,3 +37,4 @@ tauri/binaries/
 *.out
 coverage.out
 coverage.html
+.codegraph/
