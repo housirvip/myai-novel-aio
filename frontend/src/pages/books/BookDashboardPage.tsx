@@ -3,6 +3,8 @@ import { PencilLine, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 import { formatApiErrorMessage } from "@/lib/api";
 import { deleteBook, getBook, updateBook } from "@/lib/books-api";
 import { createChapter, deleteChapter, listChapters, updateChapter } from "@/lib/chapters-api";
@@ -97,6 +99,8 @@ function createEditChapterForm(chapter: ChapterView): ChapterEditForm {
   };
 }
 
+const formInputClass = "w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground outline-none transition focus:border-primary";
+
 function ResourceSelectionGroup(props: {
   title: string;
   options: ResourceOption[];
@@ -104,20 +108,20 @@ function ResourceSelectionGroup(props: {
   onToggle: (resourceId: number) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+    <div className="rounded-lg border border-border bg-muted p-3">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-medium text-slate-900">{props.title}</div>
-        <div className="text-xs text-slate-500">已选 {props.selectedIds.length}</div>
+        <div className="text-sm font-medium text-foreground">{props.title}</div>
+        <div className="text-xs text-muted-foreground">已选 {props.selectedIds.length}</div>
       </div>
       <div className="mt-3 max-h-40 space-y-2 overflow-y-auto pr-1">
-        {props.options.length === 0 && <div className="text-xs text-slate-500">当前没有可选资源。</div>}
+        {props.options.length === 0 && <div className="text-xs text-muted-foreground">当前没有可选资源。</div>}
         {props.options.map((option) => {
           const checked = props.selectedIds.includes(option.id);
           return (
             <label
               key={option.id}
-              className={`block cursor-pointer rounded-xl border px-3 py-2 text-sm transition ${
-                checked ? "border-primary bg-primary/5 text-slate-950" : "border-slate-200 bg-white text-slate-700"
+              className={`block cursor-pointer rounded-lg border px-3 py-2 text-sm transition ${
+                checked ? "border-primary bg-primary/5 text-foreground" : "border-border bg-card text-muted-foreground"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -125,11 +129,11 @@ function ResourceSelectionGroup(props: {
                   type="checkbox"
                   checked={checked}
                   onChange={() => props.onToggle(option.id)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300"
+                  className="mt-1 h-4 w-4 rounded border-border"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="truncate">{option.name}</div>
-                  {option.subtitle ? <div className="mt-1 text-[11px] text-slate-500">{option.subtitle}</div> : null}
+                  {option.subtitle ? <div className="mt-1 text-[11px] text-muted-foreground">{option.subtitle}</div> : null}
                 </div>
               </div>
             </label>
@@ -145,8 +149,6 @@ export function BookDashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const bookId = parseBookId(params.bookId);
-  // safeBookId only meaningful when bookId !== null; query/mutation
-  // closures are gated by the early return at the bottom of this hook block.
   const safeBookId = bookId ?? 0;
 
   const [bookForm, setBookForm] = useState(() => createBookForm());
@@ -458,7 +460,7 @@ export function BookDashboardPage() {
 
   if (bookId === null) {
     return (
-      <section className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center text-sm text-slate-500 shadow-sm">
+      <section className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground shadow-sm">
         URL 中的书籍编号无效，请回到书籍总览重新进入。
       </section>
     );
@@ -466,10 +468,10 @@ export function BookDashboardPage() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-[28px] border border-slate-200 bg-gradient-to-r from-slate-950 to-slate-800 p-6 text-white">
+      <header className="rounded-xl border border-border bg-gradient-to-r from-slate-950 to-slate-800 p-6 text-white">
         <p className="text-sm text-white/70">单书总控面板</p>
         <h2 className="mt-2 text-2xl font-semibold">{book?.title ?? "书籍工作台"}</h2>
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+        <div className="mt-4 rounded-lg border border-white/10 bg-white/5 px-4 py-3">
           <div className="max-h-56 overflow-y-auto pr-1">
             <p className="whitespace-pre-wrap break-words text-sm leading-7 text-white/78">
               {book?.summary || "这里会展示书籍信息、章节列表、资源概览与最近活跃章节。"}
@@ -480,41 +482,41 @@ export function BookDashboardPage() {
 
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
         <div className="space-y-4">
-          <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-slate-950">章节创建</h3>
-                <p className="mt-1 text-sm text-slate-500">直接在 WebUI 内创建章节并进入对应工作台。</p>
+                <h3 className="text-lg font-semibold text-foreground">章节创建</h3>
+                <p className="mt-1 text-sm text-muted-foreground">直接在 WebUI 内创建章节并进入对应工作台。</p>
               </div>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-muted-foreground">
                 <span>章节号</span>
                 <input
                   value={createForm.chapterNo}
                   onChange={(event) => setCreateForm((current) => ({ ...current, chapterNo: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                  className={formInputClass}
                   inputMode="numeric"
                   placeholder="例如 12"
                 />
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-muted-foreground">
                 <span>目标字数</span>
                 <input
                   value={createForm.targetWordCount}
                   onChange={(event) => setCreateForm((current) => ({ ...current, targetWordCount: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                  className={formInputClass}
                   inputMode="numeric"
                   placeholder="例如 3000"
                 />
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-muted-foreground">
                 <span>Provider</span>
                 <select
                   value={createForm.provider}
                   onChange={(event) => setCreateForm((current) => ({ ...current, provider: event.target.value as ChapterCreateWorkflowProvider }))}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                  className={formInputClass}
                 >
                   <option value="default">跟随个人默认</option>
                   <option value="mock">mock</option>
@@ -523,111 +525,117 @@ export function BookDashboardPage() {
                   <option value="custom">custom</option>
                 </select>
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-muted-foreground">
                 <span>Low Model</span>
                 <input
                   value={createForm.lowModel}
                   onChange={(event) => setCreateForm((current) => ({ ...current, lowModel: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                  className={formInputClass}
                   placeholder="留空则沿用个人默认"
                 />
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-muted-foreground">
                 <span>Mid Model</span>
                 <input
                   value={createForm.midModel}
                   onChange={(event) => setCreateForm((current) => ({ ...current, midModel: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                  className={formInputClass}
                   placeholder="留空则沿用个人默认"
                 />
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-muted-foreground">
                 <span>High Model</span>
                 <input
                   value={createForm.highModel}
                   onChange={(event) => setCreateForm((current) => ({ ...current, highModel: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                  className={formInputClass}
                   placeholder="留空则沿用个人默认"
                 />
               </label>
-              <label className="col-span-2 space-y-2 text-sm text-slate-600">
+              <label className="col-span-2 space-y-2 text-sm text-muted-foreground">
                 <span>章节标题</span>
                 <input
                   value={createForm.title}
                   onChange={(event) => setCreateForm((current) => ({ ...current, title: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                  className={formInputClass}
                   placeholder="例如：风雪夜归人"
                 />
               </label>
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-slate-500">建议下一章编号：第 {nextChapterNo ?? "—"} 章</div>
+              <div className="text-sm text-muted-foreground">建议下一章编号：第 {nextChapterNo ?? "—"} 章</div>
               <button
                 onClick={submitCreate}
                 disabled={createChapterMutation.isPending}
-                className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
               >
                 {createChapterMutation.isPending ? "创建中..." : "创建并进入工作台"}
               </button>
             </div>
 
             {createChapterMutation.isError && (
-              <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              <div className="mt-3 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {formatApiErrorMessage(createChapterMutation.error, "创建章节失败")}
               </div>
             )}
           </div>
 
-          <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-slate-950">章节列表</h3>
-                <p className="mt-1 text-sm text-slate-500">按章节查看当前生命周期进度，并可直接进入编辑与阅读入口。</p>
+                <h3 className="text-lg font-semibold text-foreground">章节列表</h3>
+                <p className="mt-1 text-sm text-muted-foreground">按章节查看当前生命周期进度，并可直接进入编辑与阅读入口。</p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">共 {chapters.length} 章</span>
+              <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">共 {chapters.length} 章</span>
             </div>
             <div className="mt-4 space-y-3">
-              {chaptersQuery.isLoading && <div className="rounded-2xl bg-slate-50 px-4 py-6 text-sm text-slate-500">正在加载章节...</div>}
+              {chaptersQuery.isLoading && (
+                <div className="space-y-3">
+                  <Skeleton className="h-20 rounded-xl" />
+                  <Skeleton className="h-20 rounded-xl" />
+                  <Skeleton className="h-20 rounded-xl" />
+                </div>
+              )}
               {chapters.map((chapter) => {
                 const stageBadges = formatStageState(chapter);
                 const isEditing = chapter.chapterNo === editingChapterNo;
                 return (
-                  <div key={chapter.id} className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
+                  <div key={chapter.id} className="rounded-xl border border-border bg-muted/50 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-base font-semibold text-slate-950">第 {chapter.chapterNo} 章</span>
-                          {chapter.title && <span className="text-sm text-slate-700">· {chapter.title}</span>}
-                          <span className="rounded-full bg-slate-900 px-3 py-1 text-xs text-white">{chapter.status}</span>
+                          <span className="text-base font-semibold text-foreground">第 {chapter.chapterNo} 章</span>
+                          {chapter.title && <span className="text-sm text-muted-foreground">· {chapter.title}</span>}
+                          <span className="rounded-full bg-foreground px-3 py-1 text-xs text-background">{chapter.status}</span>
                         </div>
-                        <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                           {stageBadges.length > 0 ? (
                             stageBadges.map((stage) => (
-                              <span key={stage} className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">
+                              <span key={stage} className="rounded-full bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-400">
                                 {stage}
                               </span>
                             ))
                           ) : (
-                            <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-700">暂无阶段产物</span>
+                            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-400">暂无阶段产物</span>
                           )}
-                          <span className="rounded-full bg-slate-200 px-3 py-1 text-slate-600">
+                          <span className="rounded-full bg-secondary px-3 py-1 text-secondary-foreground">
                             更新于 {new Date(chapter.updatedAt).toLocaleString("zh-CN")}
                           </span>
                         </div>
-                        {chapter.summary && <p className="max-w-3xl text-sm text-slate-600">{chapter.summary}</p>}
+                        {chapter.summary && <p className="max-w-3xl text-sm text-muted-foreground">{chapter.summary}</p>}
                       </div>
 
                       <div className="flex flex-wrap gap-2">
                         <Link
                           to={chapterWorkbenchPath(safeBookId, chapter.chapterNo)}
-                          className="rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
                         >
                           进入工作台
                         </Link>
                         <button
                           onClick={() => startEditChapter(chapter)}
-                          className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-medium text-slate-700"
+                          className="inline-flex items-center gap-2 rounded-lg bg-card px-4 py-2 text-sm font-medium text-muted-foreground"
                         >
                           <PencilLine className="h-4 w-4" />
                           编辑元信息
@@ -635,7 +643,7 @@ export function BookDashboardPage() {
                         <button
                           onClick={() => confirmDeleteChapter(chapter.chapterNo)}
                           disabled={deleteChapterMutation.isPending}
-                          className="inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive disabled:opacity-60"
                         >
                           <Trash2 className="h-4 w-4" />
                           删除章节
@@ -644,21 +652,21 @@ export function BookDashboardPage() {
                     </div>
 
                     {isEditing && (
-                      <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4 md:grid-cols-2">
-                        <label className="space-y-2 text-sm text-slate-600 md:col-span-2">
+                      <div className="mt-4 grid gap-3 border-t border-border pt-4 md:grid-cols-2">
+                        <label className="space-y-2 text-sm text-muted-foreground md:col-span-2">
                           <span>章节标题</span>
                           <input
                             value={editForm.title}
                             onChange={(event) => setEditForm((current) => ({ ...current, title: event.target.value }))}
-                            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                            className={formInputClass}
                           />
                         </label>
-                        <label className="space-y-2 text-sm text-slate-600">
+                        <label className="space-y-2 text-sm text-muted-foreground">
                           <span>章节状态</span>
                           <select
                             value={editForm.status}
                             onChange={(event) => setEditForm((current) => ({ ...current, status: event.target.value }))}
-                            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                            className={formInputClass}
                           >
                             {chapterStatuses.map((status) => (
                               <option key={status} value={status}>
@@ -667,28 +675,28 @@ export function BookDashboardPage() {
                             ))}
                           </select>
                         </label>
-                        <label className="space-y-2 text-sm text-slate-600">
+                        <label className="space-y-2 text-sm text-muted-foreground">
                           <span>目标字数</span>
                           <input
                             value={editForm.targetWordCount}
                             onChange={(event) => setEditForm((current) => ({ ...current, targetWordCount: event.target.value }))}
-                            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                            className={formInputClass}
                             inputMode="numeric"
                           />
                         </label>
-                        <label className="space-y-2 text-sm text-slate-600 md:col-span-2">
+                        <label className="space-y-2 text-sm text-muted-foreground md:col-span-2">
                           <span>章节摘要</span>
                           <textarea
                             value={editForm.summary}
                             onChange={(event) => setEditForm((current) => ({ ...current, summary: event.target.value }))}
-                            className="min-h-24 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                            className="min-h-24 w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground outline-none transition focus:border-primary"
                           />
                         </label>
 
                         <div className="space-y-3 md:col-span-2">
                           <div>
-                            <h4 className="text-sm font-medium text-slate-900">章节实际关联资源</h4>
-                            <p className="mt-1 text-xs text-slate-500">这些选择会写回 chapter 的 `actual_*` 字段，保持与现有 HTTP contract 一致。</p>
+                            <h4 className="text-sm font-medium text-foreground">章节实际关联资源</h4>
+                            <p className="mt-1 text-xs text-muted-foreground">这些选择会写回 chapter 的 `actual_*` 字段，保持与现有 HTTP contract 一致。</p>
                           </div>
                           <div className="grid gap-3 xl:grid-cols-2">
                             <ResourceSelectionGroup
@@ -726,36 +734,36 @@ export function BookDashboardPage() {
                           </div>
                         </div>
 
-                        <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3">
-                          <div className="text-sm text-slate-500">
+                        <div className="flex flex-wrap items-center justify-between gap-3 md:col-span-2">
+                          <div className="text-sm text-muted-foreground">
                             {chapter.currentFinalId ? "已产生成稿，可直接前往阅读页查看。" : "当前仍处于写作流程中。"}
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {chapter.currentFinalId && (
                               <Link
                                 to={bookReaderPath(safeBookId)}
-                                className="rounded-2xl bg-emerald-100 px-4 py-2 text-sm font-medium text-emerald-700"
+                                className="rounded-lg bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-400"
                               >
                                 前往阅读页
                               </Link>
                             )}
                             <button
                               onClick={() => setEditingChapterNo(null)}
-                              className="rounded-2xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700"
+                              className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground"
                             >
                               取消
                             </button>
                             <button
                               onClick={submitEdit}
                               disabled={updateChapterMutation.isPending}
-                              className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
                             >
                               {updateChapterMutation.isPending ? "保存中..." : "保存章节信息"}
                             </button>
                           </div>
                         </div>
                         {(updateChapterMutation.isError || deleteChapterMutation.isError) && (
-                          <div className="md:col-span-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                          <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive md:col-span-2">
                             {updateChapterMutation.isError
                               ? formatApiErrorMessage(updateChapterMutation.error, "更新章节失败")
                               : formatApiErrorMessage(deleteChapterMutation.error, "删除章节失败")}
@@ -767,7 +775,7 @@ export function BookDashboardPage() {
                 );
               })}
               {!chaptersQuery.isLoading && chapters.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500">
+                <div className="rounded-lg border border-dashed border-border bg-card px-4 py-6 text-sm text-muted-foreground">
                   这本书还没有章节，直接使用上方表单即可创建第一章。
                 </div>
               )}
@@ -776,66 +784,66 @@ export function BookDashboardPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-slate-950">书籍编辑</h3>
-                <p className="mt-1 text-sm text-slate-500">直接修改标题、简介、目标章节数与当前状态。</p>
+                <h3 className="text-lg font-semibold text-foreground">书籍编辑</h3>
+                <p className="mt-1 text-sm text-muted-foreground">直接修改标题、简介、目标章节数与当前状态。</p>
               </div>
               <button
                 onClick={confirmDeleteBook}
                 disabled={deleteBookMutation.isPending}
-                className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-2xl bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 disabled:opacity-60"
+                className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive disabled:opacity-60"
               >
                 <Trash2 className="h-4 w-4" />
                 删除书籍
               </button>
             </div>
             <div className="mt-4 space-y-3">
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-muted-foreground">
                 <span>书籍标题</span>
                 <input
                   value={bookForm.title}
                   onChange={(event) => setBookForm((current) => ({ ...current, title: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                  className={formInputClass}
                 />
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-muted-foreground">
                 <span>书籍状态</span>
                 <input
                   value={bookForm.status}
                   onChange={(event) => setBookForm((current) => ({ ...current, status: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                  className={formInputClass}
                   placeholder="例如 drafting / ongoing / completed"
                 />
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-muted-foreground">
                 <span>目标章节数</span>
                 <input
                   value={bookForm.targetChapterCount}
                   onChange={(event) => setBookForm((current) => ({ ...current, targetChapterCount: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                  className={formInputClass}
                   inputMode="numeric"
                   placeholder="例如 100"
                 />
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-muted-foreground">
                 <span>书籍简介</span>
                 <textarea
                   value={bookForm.summary}
                   onChange={(event) => setBookForm((current) => ({ ...current, summary: event.target.value }))}
-                  className="min-h-28 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-primary"
+                  className="min-h-28 w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground outline-none transition focus:border-primary"
                 />
               </label>
               <button
                 onClick={() => updateBookMutation.mutate()}
                 disabled={updateBookMutation.isPending || !bookForm.title.trim()}
-                className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+                className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:opacity-60"
               >
                 {updateBookMutation.isPending ? "保存中..." : "保存书籍信息"}
               </button>
               {(updateBookMutation.isError || deleteBookMutation.isError) && (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                   {updateBookMutation.isError
                     ? formatApiErrorMessage(updateBookMutation.error, "更新书籍失败")
                     : formatApiErrorMessage(deleteBookMutation.error, "删除书籍失败")}
@@ -844,24 +852,24 @@ export function BookDashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-semibold text-slate-950">书籍概览</h3>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600">
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <div className="text-xs text-slate-500">目标章节</div>
-                <div className="mt-1 text-lg font-semibold text-slate-950">{book?.targetChapterCount ?? "—"}</div>
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="text-lg font-semibold text-foreground">书籍概览</h3>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+              <div className="rounded-lg bg-muted p-4">
+                <div className="text-xs text-muted-foreground">目标章节</div>
+                <div className="mt-1 text-lg font-semibold text-foreground">{book?.targetChapterCount ?? "—"}</div>
               </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <div className="text-xs text-slate-500">已批准</div>
-                <div className="mt-1 text-lg font-semibold text-slate-950">{book?.currentChapterCount ?? 0}</div>
+              <div className="rounded-lg bg-muted p-4">
+                <div className="text-xs text-muted-foreground">已批准</div>
+                <div className="mt-1 text-lg font-semibold text-foreground">{book?.currentChapterCount ?? 0}</div>
               </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <div className="text-xs text-slate-500">状态</div>
-                <div className="mt-1 text-lg font-semibold text-slate-950">{book?.status ?? "—"}</div>
+              <div className="rounded-lg bg-muted p-4">
+                <div className="text-xs text-muted-foreground">状态</div>
+                <div className="mt-1 text-lg font-semibold text-foreground">{book?.status ?? "—"}</div>
               </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <div className="text-xs text-slate-500">最近更新</div>
-                <div className="mt-1 text-sm font-semibold text-slate-950">{book?.updatedAt ? new Date(book.updatedAt).toLocaleString("zh-CN") : "—"}</div>
+              <div className="rounded-lg bg-muted p-4">
+                <div className="text-xs text-muted-foreground">最近更新</div>
+                <div className="mt-1 text-sm font-semibold text-foreground">{book?.updatedAt ? new Date(book.updatedAt).toLocaleString("zh-CN") : "—"}</div>
               </div>
             </div>
           </div>

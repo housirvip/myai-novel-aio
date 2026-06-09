@@ -133,18 +133,18 @@ export function ConnectPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">连接后端服务</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">连接后端服务</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             配置 Go 后端地址以使用 API 服务
           </p>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
           <div>
-            <label htmlFor="backend-url" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="backend-url" className="block text-sm font-medium text-foreground">
               后端地址
             </label>
             <div className="mt-1 flex gap-2">
@@ -156,12 +156,12 @@ export function ConnectPage() {
                 onKeyDown={(e) => e.key === "Enter" && handleConnect()}
                 placeholder="http://127.0.0.1:3030"
                 disabled={loading}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+                className="block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm outline-none transition focus:border-primary disabled:opacity-50"
               />
               <button
                 onClick={handleConnect}
                 disabled={loading}
-                className="shrink-0 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
               >
                 连接
               </button>
@@ -172,22 +172,22 @@ export function ConnectPage() {
             <>
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
+                  <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-2 text-gray-400">或者</span>
+                  <span className="bg-card px-2 text-muted-foreground">或者</span>
                 </div>
               </div>
 
               {backend.running ? (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
-                    <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
+                  <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">
+                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
                     内嵌后端运行中{backend.pid ? ` (PID: ${backend.pid})` : ""}
                   </div>
                   <button
                     onClick={handleStopEmbedded}
-                    className="w-full rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground"
                   >
                     停止后端
                   </button>
@@ -196,7 +196,7 @@ export function ConnectPage() {
                 <button
                   onClick={handleStartEmbedded}
                   disabled={loading}
-                  className="w-full rounded-md border border-indigo-300 bg-white px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                  className="w-full rounded-lg border border-primary/30 bg-card px-4 py-2 text-sm font-medium text-primary disabled:opacity-50"
                 >
                   启动内嵌后端
                 </button>
@@ -206,12 +206,12 @@ export function ConnectPage() {
 
           {status.type !== "idle" && (
             <div
-              className={`rounded-md px-3 py-2 text-sm ${
+              className={`rounded-lg px-3 py-2 text-sm ${
                 status.type === "info"
-                  ? "bg-blue-50 text-blue-700"
+                  ? "bg-primary/10 text-primary"
                   : status.type === "success"
-                    ? "bg-green-50 text-green-700"
-                    : "bg-red-50 text-red-700"
+                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                    : "bg-destructive/10 text-destructive"
               }`}
             >
               {status.text}
@@ -221,11 +221,11 @@ export function ConnectPage() {
 
         <div className="flex items-center justify-between text-sm">
           {isTauri && (
-            <button onClick={handleOpenConsole} className="text-gray-500 underline hover:text-indigo-600">
+            <button onClick={handleOpenConsole} className="text-muted-foreground underline hover:text-primary">
               打开控制台
             </button>
           )}
-          <button onClick={handleSkip} className="text-gray-400 hover:text-gray-600 ml-auto">
+          <button onClick={handleSkip} className="ml-auto text-muted-foreground/60 hover:text-muted-foreground">
             跳过（使用同源模式）
           </button>
         </div>

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatApiErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/query/query-keys";
 import { parseBookId } from "@/lib/routes";
@@ -188,58 +189,16 @@ function getOutlinePrimaryFieldValue(form: FormState) {
   return form.title;
 }
 
-function textInputClass() {
-  return "w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-primary";
-}
+const inputClass = "w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary";
 
 function textareaClass(minHeight = "min-h-28") {
-  return `${minHeight} w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-primary`;
+  return `${minHeight} w-full rounded-lg border border-border bg-card px-3 py-3 text-sm text-foreground outline-none transition focus:border-primary`;
 }
 
 const outlineLevelOptions = [
   { value: "main", label: "主线大纲" },
   { value: "chapter_arc", label: "章节大纲" },
 ] as const;
-
-function renderOutlineForm(form: FormState, setForm: React.Dispatch<React.SetStateAction<FormState>>) {
-  return (
-    <div className="space-y-3">
-      <label className="block space-y-2 text-sm text-slate-600">
-        <span>标题</span>
-        <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className={textInputClass()} />
-      </label>
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="block space-y-2 text-sm text-slate-600">
-          <span>大纲层级</span>
-          <select value={form.outlineLevel} onChange={(event) => setForm((current) => ({ ...current, outlineLevel: event.target.value }))} className={textInputClass()}>
-            {outlineLevelOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </label>
-        <label className="block space-y-2 text-sm text-slate-600">
-          <span>卷标题</span>
-          <input value={form.volumeTitle} onChange={(event) => setForm((current) => ({ ...current, volumeTitle: event.target.value }))} className={textInputClass()} />
-        </label>
-        <label className="block space-y-2 text-sm text-slate-600">
-          <span>卷号</span>
-          <input value={form.volumeNo} onChange={(event) => setForm((current) => ({ ...current, volumeNo: event.target.value }))} className={textInputClass()} inputMode="numeric" />
-        </label>
-        <label className="block space-y-2 text-sm text-slate-600">
-          <span>起止章节</span>
-          <div className="grid grid-cols-2 gap-2">
-            <input value={form.chapterStartNo} onChange={(event) => setForm((current) => ({ ...current, chapterStartNo: event.target.value }))} className={textInputClass()} inputMode="numeric" placeholder="起" />
-            <input value={form.chapterEndNo} onChange={(event) => setForm((current) => ({ ...current, chapterEndNo: event.target.value }))} className={textInputClass()} inputMode="numeric" placeholder="止" />
-          </div>
-        </label>
-      </div>
-      <label className="block space-y-2 text-sm text-slate-600"><span>故事核心</span><textarea value={form.storyCore} onChange={(event) => setForm((current) => ({ ...current, storyCore: event.target.value }))} className={textareaClass()} /></label>
-      <label className="block space-y-2 text-sm text-slate-600"><span>主线推进</span><textarea value={form.mainPlot} onChange={(event) => setForm((current) => ({ ...current, mainPlot: event.target.value }))} className={textareaClass()} /></label>
-      <label className="block space-y-2 text-sm text-slate-600"><span>支线安排</span><textarea value={form.subPlot} onChange={(event) => setForm((current) => ({ ...current, subPlot: event.target.value }))} className={textareaClass()} /></label>
-      <label className="block space-y-2 text-sm text-slate-600"><span>伏笔与回收</span><textarea value={form.foreshadowing} onChange={(event) => setForm((current) => ({ ...current, foreshadowing: event.target.value }))} className={textareaClass("min-h-24")} /></label>
-      <label className="block space-y-2 text-sm text-slate-600"><span>预期回报</span><textarea value={form.expectedPayoff} onChange={(event) => setForm((current) => ({ ...current, expectedPayoff: event.target.value }))} className={textareaClass("min-h-24")} /></label>
-      <label className="block space-y-2 text-sm text-slate-600"><span>备注</span><textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} className={textareaClass("min-h-24")} /></label>
-    </div>
-  );
-}
 
 function getEntityTypeLabel(entityType: string) {
   const resourceTypeLabels: Record<string, string> = {
@@ -351,6 +310,46 @@ function sortItems(tab: ResourceKey, items: ResourceRecord[], sortMode: string) 
   return next.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 }
 
+function renderOutlineForm(form: FormState, setForm: React.Dispatch<React.SetStateAction<FormState>>) {
+  return (
+    <div className="space-y-3">
+      <label className="block space-y-2 text-sm text-muted-foreground">
+        <span>标题</span>
+        <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className={inputClass} />
+      </label>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="block space-y-2 text-sm text-muted-foreground">
+          <span>大纲层级</span>
+          <select value={form.outlineLevel} onChange={(event) => setForm((current) => ({ ...current, outlineLevel: event.target.value }))} className={inputClass}>
+            {outlineLevelOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
+        <label className="block space-y-2 text-sm text-muted-foreground">
+          <span>卷标题</span>
+          <input value={form.volumeTitle} onChange={(event) => setForm((current) => ({ ...current, volumeTitle: event.target.value }))} className={inputClass} />
+        </label>
+        <label className="block space-y-2 text-sm text-muted-foreground">
+          <span>卷号</span>
+          <input value={form.volumeNo} onChange={(event) => setForm((current) => ({ ...current, volumeNo: event.target.value }))} className={inputClass} inputMode="numeric" />
+        </label>
+        <label className="block space-y-2 text-sm text-muted-foreground">
+          <span>起止章节</span>
+          <div className="grid grid-cols-2 gap-2">
+            <input value={form.chapterStartNo} onChange={(event) => setForm((current) => ({ ...current, chapterStartNo: event.target.value }))} className={inputClass} inputMode="numeric" placeholder="起" />
+            <input value={form.chapterEndNo} onChange={(event) => setForm((current) => ({ ...current, chapterEndNo: event.target.value }))} className={inputClass} inputMode="numeric" placeholder="止" />
+          </div>
+        </label>
+      </div>
+      <label className="block space-y-2 text-sm text-muted-foreground"><span>故事核心</span><textarea value={form.storyCore} onChange={(event) => setForm((current) => ({ ...current, storyCore: event.target.value }))} className={textareaClass()} /></label>
+      <label className="block space-y-2 text-sm text-muted-foreground"><span>主线推进</span><textarea value={form.mainPlot} onChange={(event) => setForm((current) => ({ ...current, mainPlot: event.target.value }))} className={textareaClass()} /></label>
+      <label className="block space-y-2 text-sm text-muted-foreground"><span>支线安排</span><textarea value={form.subPlot} onChange={(event) => setForm((current) => ({ ...current, subPlot: event.target.value }))} className={textareaClass()} /></label>
+      <label className="block space-y-2 text-sm text-muted-foreground"><span>伏笔与回收</span><textarea value={form.foreshadowing} onChange={(event) => setForm((current) => ({ ...current, foreshadowing: event.target.value }))} className={textareaClass("min-h-24")} /></label>
+      <label className="block space-y-2 text-sm text-muted-foreground"><span>预期回报</span><textarea value={form.expectedPayoff} onChange={(event) => setForm((current) => ({ ...current, expectedPayoff: event.target.value }))} className={textareaClass("min-h-24")} /></label>
+      <label className="block space-y-2 text-sm text-muted-foreground"><span>备注</span><textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} className={textareaClass("min-h-24")} /></label>
+    </div>
+  );
+}
+
 export function ResourcesPage() {
   const params = useParams();
   const queryClient = useQueryClient();
@@ -406,10 +405,6 @@ export function ResourcesPage() {
   });
 
   const items = (resourceQuery.data ?? []) as ResourceRecord[];
-  // pickerSources is consumed by getSearchableText below as well as the
-  // resource editor; keep it referentially stable so downstream memoization
-  // is meaningful and the search filter recomputes only when picker data
-  // actually changes.
   const pickerSources: PickerSources = useMemo(
     () => ({
       characters: charactersQuery.data ?? [],
@@ -506,7 +501,7 @@ export function ResourcesPage() {
 
   if (bookId === null) {
     return (
-      <section className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center text-sm text-slate-500 shadow-sm">
+      <section className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground shadow-sm">
         URL 中的书籍编号无效，请回到书籍总览重新进入。
       </section>
     );
@@ -516,16 +511,16 @@ export function ResourcesPage() {
     <section className="space-y-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-950">资源管理</h2>
-          <p className="mt-1 text-sm text-slate-500">使用按资源类型组织的正式表单维护写作所需的结构化上下文。</p>
+          <h2 className="text-2xl font-semibold text-foreground">资源管理</h2>
+          <p className="mt-1 text-sm text-muted-foreground">使用按资源类型组织的正式表单维护写作所需的结构化上下文。</p>
         </div>
-        <button onClick={() => resetForm(activeTab)} className="rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+        <button onClick={() => resetForm(activeTab)} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
           新建 {activeMeta.label}
         </button>
       </header>
 
       <div className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_420px]">
-        <aside className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
+        <aside className="rounded-xl border border-border bg-card p-4 shadow-sm">
           <div className="space-y-2">
             {resourceTabs.map((tab) => (
               <button
@@ -536,58 +531,64 @@ export function ResourcesPage() {
                   setStatusFilter("all");
                   resetForm(tab.key);
                 }}
-                className={`w-full rounded-2xl px-4 py-3 text-left transition ${
-                  activeTab === tab.key ? "bg-primary text-primary-foreground shadow-glow" : "bg-slate-50 text-slate-700"
+                className={`w-full rounded-lg px-4 py-3 text-left transition ${
+                  activeTab === tab.key ? "bg-primary text-primary-foreground shadow-glow" : "bg-muted text-muted-foreground"
                 }`}
               >
                 <div className="text-sm font-medium">{tab.label}</div>
-                <div className={`mt-1 text-xs ${activeTab === tab.key ? "text-primary-foreground/80" : "text-slate-500"}`}>{tab.description}</div>
+                <div className={`mt-1 text-xs ${activeTab === tab.key ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{tab.description}</div>
               </button>
             ))}
           </div>
         </aside>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold text-slate-950">{activeMeta.label} 列表</h3>
-              <p className="mt-1 text-sm text-slate-500">{activeMeta.description}</p>
+              <h3 className="text-lg font-semibold text-foreground">{activeMeta.label} 列表</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{activeMeta.description}</p>
             </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">筛选后 {filteredItems.length} 条</span>
+            <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">筛选后 {filteredItems.length} 条</span>
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px]">
-            <input value={searchText} onChange={(event) => setSearchText(event.target.value)} className={textInputClass()} placeholder="按名称、内容、标签搜索" />
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className={textInputClass()}>
+            <input value={searchText} onChange={(event) => setSearchText(event.target.value)} className={inputClass} placeholder="按名称、内容、标签搜索" />
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className={inputClass}>
               <option value="all">全部状态</option>
               {statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
-            <select value={sortMode} onChange={(event) => setSortMode(event.target.value as typeof sortMode)} className={textInputClass()}>
+            <select value={sortMode} onChange={(event) => setSortMode(event.target.value as typeof sortMode)} className={inputClass}>
               {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </div>
 
           <div className="mt-4 space-y-3">
-            {resourceQuery.isLoading && <div className="rounded-2xl bg-slate-50 px-4 py-6 text-sm text-slate-500">正在加载资源...</div>}
+            {resourceQuery.isLoading && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <Skeleton className="h-24 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+              </div>
+            )}
             {resourceQuery.isError && (
-              <div className="rounded-2xl bg-rose-50 px-4 py-6 text-sm text-rose-700">
+              <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-6 text-sm text-destructive">
                 {formatApiErrorMessage(resourceQuery.error, "资源加载失败")}
               </div>
             )}
             {!resourceQuery.isLoading && !resourceQuery.isError && filteredItems.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500">
+              <div className="rounded-lg border border-dashed border-border bg-card px-4 py-6 text-sm text-muted-foreground">
                 当前筛选条件下没有结果，可调整搜索条件或直接在右侧创建新资源。
               </div>
             )}
             {filteredItems.map((item) => (
-              <article key={item.id} className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+              <article key={item.id} className="rounded-xl border border-border bg-muted p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-950">{getCardTitle(activeTab, item)}</h4>
+                    <h4 className="text-sm font-semibold text-foreground">{getCardTitle(activeTab, item)}</h4>
                     {activeTab === "relations" && (
-                      <p className="mt-1 text-xs text-slate-500">{getRelationEntitySummary(item as RelationView, pickerSources)}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{getRelationEntitySummary(item as RelationView, pickerSources)}</p>
                     )}
-                    <p className="mt-1 text-xs text-slate-500">{getCardMeta(activeTab, item, pickerSources)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{getCardMeta(activeTab, item, pickerSources)}</p>
                   </div>
                   <div className="flex gap-2 text-xs">
                     <button
@@ -595,7 +596,7 @@ export function ResourcesPage() {
                         setEditingId(item.id);
                         setForm(buildFormFromItem(activeTab, item));
                       }}
-                      className="rounded-full bg-white px-3 py-1 text-slate-700"
+                      className="rounded-full bg-card px-3 py-1 text-muted-foreground"
                     >
                       编辑
                     </button>
@@ -607,26 +608,26 @@ export function ResourcesPage() {
                         deleteMutation.mutate(item.id);
                       }}
                       disabled={deleteMutation.isPending}
-                      className="rounded-full bg-rose-100 px-3 py-1 text-rose-700 disabled:opacity-60"
+                      className="rounded-full bg-destructive/10 px-3 py-1 text-destructive disabled:opacity-60"
                     >
                       删除
                     </button>
                   </div>
                 </div>
-                <p className="mt-3 max-h-32 overflow-y-auto whitespace-pre-wrap pr-1 text-sm leading-6 text-slate-600">{getCardBody(activeTab, item)}</p>
+                <p className="mt-3 max-h-32 overflow-y-auto whitespace-pre-wrap pr-1 text-sm leading-6 text-muted-foreground">{getCardBody(activeTab, item)}</p>
               </article>
             ))}
           </div>
         </div>
 
-        <aside className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        <aside className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold text-slate-950">{editingId === null ? `新建 ${activeMeta.label}` : `编辑 #${editingId}`}</h3>
-              <p className="mt-1 text-xs text-slate-500">字段按资源类型定制，不再依赖通用 title/subtitle/body/extra 输入。</p>
+              <h3 className="text-lg font-semibold text-foreground">{editingId === null ? `新建 ${activeMeta.label}` : `编辑 #${editingId}`}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">字段按资源类型定制，不再依赖通用 title/subtitle/body/extra 输入。</p>
             </div>
             {editingId !== null && (
-              <button onClick={() => resetForm(activeTab)} className="whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
+              <button onClick={() => resetForm(activeTab)} className="whitespace-nowrap rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground">
                 取消编辑
               </button>
             )}
@@ -640,12 +641,12 @@ export function ResourcesPage() {
             <button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending || !primaryFieldValue?.trim() || validationMessage !== null}
-              className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+              className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:opacity-60"
             >
               {saveMutation.isPending ? "保存中..." : editingId === null ? "创建资源" : "保存修改"}
             </button>
 
-            <div className="rounded-2xl bg-slate-50 p-4 text-xs leading-6 text-slate-500">
+            <div className="rounded-lg bg-muted p-4 text-xs leading-6 text-muted-foreground">
               {saveMutation.isError
                 ? formatApiErrorMessage(saveMutation.error, "保存失败")
                 : validationMessage

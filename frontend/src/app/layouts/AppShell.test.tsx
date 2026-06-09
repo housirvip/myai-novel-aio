@@ -8,7 +8,7 @@ import { renderWithRoute } from "@/test/utils";
 describe("AppShell", () => {
   beforeEach(() => {
     vi.spyOn(authApi, "getSession").mockResolvedValue({
-      user: { id: 1, email: "test@test.com", displayName: "Test" },
+      user: { id: 1, email: "test@test.com", displayName: "Test", status: "active" },
     });
   });
 
