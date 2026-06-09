@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { useTheme } from "@/components/theme-provider";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatApiErrorMessage } from "@/lib/api";
 import { getBook } from "@/lib/books-api";
@@ -13,8 +15,9 @@ export function ChapterReaderPage() {
   const params = useParams();
   const bookId = parseBookId(params.bookId);
   const [selectedChapterNo, setSelectedChapterNo] = useState<number | null>(null);
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const [fontScale, setFontScale] = useState(18);
-  const [isDark, setIsDark] = useState(false);
   const [wideMode, setWideMode] = useState(false);
 
   const bookQuery = useQuery({
@@ -217,7 +220,7 @@ export function ChapterReaderPage() {
                 <button onClick={() => setWideMode((value) => !value)} className={`rounded-full px-3 py-2 ${isDark ? "bg-slate-800 text-slate-300" : "bg-secondary text-secondary-foreground"}`}>
                   {wideMode ? "常规宽度" : "加宽版心"}
                 </button>
-                <button onClick={() => setIsDark((value) => !value)} className={`rounded-full px-3 py-2 ${isDark ? "bg-slate-800 text-slate-300" : "bg-secondary text-secondary-foreground"}`}>
+                <button onClick={() => setTheme(isDark ? "light" : "dark")} className={`rounded-full px-3 py-2 ${isDark ? "bg-slate-800 text-slate-300" : "bg-secondary text-secondary-foreground"}`}>
                   {isDark ? "亮色" : "暗色"}
                 </button>
               </div>

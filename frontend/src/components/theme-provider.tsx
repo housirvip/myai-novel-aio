@@ -32,7 +32,8 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     return "system";
   });
 
-  const resolvedTheme = theme === "system" ? getSystemTheme() : theme;
+  const [systemTheme, setSystemTheme] = useState<"light" | "dark">(getSystemTheme);
+  const resolvedTheme = theme === "system" ? systemTheme : theme;
 
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
@@ -50,7 +51,11 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (theme !== "system" || typeof window.matchMedia !== "function") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => applyTheme(getSystemTheme());
+    const handler = () => {
+      const next = getSystemTheme();
+      setSystemTheme(next);
+      applyTheme(next);
+    };
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, [theme]);

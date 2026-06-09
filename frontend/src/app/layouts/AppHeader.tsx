@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, LogOut, Menu, Moon, Sun } from "lucide-react";
+import { ChevronRight, LogOut, Menu, Monitor, Moon, Sun } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 import { useAuth } from "@/app/auth";
 import { useTheme } from "@/components/theme-provider";
@@ -91,8 +92,8 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
         <Button variant="ghost" size="icon" onClick={cycleTheme} aria-label="切换主题">
           {theme === "dark" ? (
             <Moon className="h-4 w-4" />
-          ) : theme === "light" ? (
-            <Sun className="h-4 w-4" />
+          ) : theme === "system" ? (
+            <Monitor className="h-4 w-4" />
           ) : (
             <Sun className="h-4 w-4" />
           )}
@@ -116,8 +117,13 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={async () => {
-                  await logout();
-                  navigate("/app/login", { replace: true });
+                  try {
+                    await logout();
+                  } catch {
+                    toast.error("登出失败");
+                  } finally {
+                    navigate("/app/login", { replace: true });
+                  }
                 }}
               >
                 <LogOut className="h-4 w-4" />
