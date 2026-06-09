@@ -1,18 +1,30 @@
 import { apiGet, apiPost } from "@/lib/api";
-import type { AuthSessionView, LoginInput, RegisterInput, SessionUserView } from "@/lib/types";
+import type { AuthLoginResponse, AuthSessionView, LoginInput, RegisterInput } from "@/lib/types";
 
 export function getSession() {
   return apiGet<AuthSessionView>("/api/auth/session");
 }
 
-export function login(input: LoginInput) {
-  return apiPost<SessionUserView, LoginInput>("/api/auth/login", input);
+export async function login(input: LoginInput) {
+  const res = await apiPost<AuthLoginResponse, LoginInput>("/api/auth/login", input);
+  if (res.token) {
+    localStorage.setItem("auth-token", res.token);
+  }
+  return res.user;
 }
 
-export function register(input: RegisterInput) {
-  return apiPost<SessionUserView, RegisterInput>("/api/auth/register", input);
+export async function register(input: RegisterInput) {
+  const res = await apiPost<AuthLoginResponse, RegisterInput>("/api/auth/register", input);
+  if (res.token) {
+    localStorage.setItem("auth-token", res.token);
+  }
+  return res.user;
 }
 
-export function logout() {
-  return apiPost<{ ok: true }, Record<string, never>>("/api/auth/logout", {});
+export async function logout() {
+  try {
+    await apiPost<{ ok: true }, Record<string, never>>("/api/auth/logout", {});
+  } finally {
+    localStorage.removeItem("auth-token");
+  }
 }

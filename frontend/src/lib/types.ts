@@ -66,6 +66,11 @@ export interface RegisterInput extends LoginInput {
   displayName: string;
 }
 
+export interface AuthLoginResponse {
+  user: SessionUserView;
+  token?: string;
+}
+
 export interface BookView {
   id: number;
   title: string;

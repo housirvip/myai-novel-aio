@@ -1,0 +1,39 @@
+{
+  "productName": "myai-novel",
+  "version": "0.1.0",
+  "identifier": "com.myai-novel.desktop",
+  "build": {
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../frontend/dist",
+    "beforeDevCommand": "cd frontend && VITE_TAURI=1 npm run dev -- --port 1420",
+    "beforeBuildCommand": "cd frontend && VITE_TAURI=1 npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "myai-novel",
+        "width": 1280,
+        "height": 860,
+        "minWidth": 800,
+        "minHeight": 600,
+        "center": true
+      }
+    ],
+    "withGlobalTauri": true,
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

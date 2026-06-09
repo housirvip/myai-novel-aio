@@ -3,6 +3,8 @@ import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+const isTauri = !!process.env.VITE_TAURI;
+
 const redirectAppBasePlugin = {
   name: "redirect-app-base",
   configureServer(server: { middlewares: { use: (handler: (req: { url?: string }, res: { statusCode?: number; setHeader: (name: string, value: string) => void; end: () => void }, next: () => void) => void) => void } }) {
@@ -21,8 +23,8 @@ const redirectAppBasePlugin = {
 };
 
 export default defineConfig({
-  plugins: [redirectAppBasePlugin, react()],
-  base: "/app/",
+  plugins: isTauri ? [react()] : [redirectAppBasePlugin, react()],
+  base: isTauri ? "/" : "/app/",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -30,17 +32,19 @@ export default defineConfig({
   },
   server: {
     host: "127.0.0.1",
-    port: 5173,
-    proxy: {
-      "/api": {
-        target: "http://127.0.0.1:3030",
-        changeOrigin: true,
-      },
-      "/health": {
-        target: "http://127.0.0.1:3030",
-        changeOrigin: true,
-      },
-    },
+    port: isTauri ? 1420 : 5173,
+    proxy: isTauri
+      ? undefined
+      : {
+          "/api": {
+            target: "http://127.0.0.1:3030",
+            changeOrigin: true,
+          },
+          "/health": {
+            target: "http://127.0.0.1:3030",
+            changeOrigin: true,
+          },
+        },
   },
   test: {
     environment: "jsdom",

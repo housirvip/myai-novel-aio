@@ -31,19 +31,39 @@ export class ApiUnauthorizedError extends ApiError {
   }
 }
 
+function getApiBaseUrl(): string {
+  return localStorage.getItem("api-base-url") || "";
+}
+
+function getAuthToken(): string | null {
+  return localStorage.getItem("auth-token");
+}
+
 async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const method = init?.method ?? "GET";
   const target = typeof input === "string" ? input : input instanceof URL ? input.toString() : String(input);
 
+  const baseUrl = getApiBaseUrl();
+  const fullUrl = typeof input === "string" && input.startsWith("/") ? baseUrl + input : input;
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...(init?.body ? { "Content-Type": "application/json" } : {}),
+  };
+
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   let response: Response;
 
   try {
-    response = await fetch(input, {
+    response = await fetch(fullUrl, {
       ...init,
       credentials: init?.credentials ?? "include",
       headers: {
-        Accept: "application/json",
-        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...headers,
         ...(init?.headers ?? {}),
       },
     });

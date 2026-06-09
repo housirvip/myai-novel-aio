@@ -1,14 +1,16 @@
-.PHONY: help dev-frontend dev-backend build build-frontend build-backend test test-frontend test-backend clean docker docker-up docker-down
+.PHONY: help dev-frontend dev-backend dev-tauri build build-frontend build-backend build-tauri test test-frontend test-backend clean clean-tauri docker docker-up docker-down
 
 help:
 	@echo "Development:"
 	@echo "  make dev-frontend     Run Vite dev server (port 5173)"
-	@echo "  make dev-backend      Run Go server (port 3000)"
+	@echo "  make dev-backend      Run Go server (port 3030)"
+	@echo "  make dev-tauri        Run Tauri desktop app (dev mode)"
 	@echo ""
 	@echo "Build:"
 	@echo "  make build            Build frontend + backend"
 	@echo "  make build-frontend   npm run build"
 	@echo "  make build-backend    go build server + cli"
+	@echo "  make build-tauri      Build Tauri desktop app"
 	@echo ""
 	@echo "Test:"
 	@echo "  make test             Run all tests"
@@ -28,6 +30,9 @@ dev-frontend:
 
 dev-backend:
 	cd backend && go run ./cmd/server
+
+dev-tauri:
+	cd tauri && cargo tauri dev
 
 build: build-frontend build-backend
 
@@ -49,6 +54,15 @@ test-backend:
 clean:
 	rm -rf frontend/dist frontend/node_modules
 	rm -rf backend/bin
+
+clean-tauri:
+	cd tauri && cargo clean
+	rm -rf tauri/binaries
+
+build-tauri: build-backend
+	@mkdir -p tauri/binaries
+	@cp backend/bin/server tauri/binaries/server-$$(rustc -vV | grep host | cut -d' ' -f2)
+	cd tauri && cargo tauri build
 
 docker:
 	docker build -t myai-novel-aio:dev .

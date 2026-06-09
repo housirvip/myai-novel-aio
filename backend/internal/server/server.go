@@ -53,6 +53,7 @@ func New(cfg *config.Config, logger *zap.Logger, gdb *gorm.DB) *Server {
 	r.Use(middleware.RequestContext(logger))
 	r.Use(middleware.Recovery(logger))
 	r.Use(middleware.ErrorResponder())
+	r.Use(middleware.CORS(cfg.CORSAllowedOrigins))
 	r.Use(middleware.SessionMiddleware(authSvc, cfg.AuthCookieName))
 	r.Use(middleware.RequireBookAccess(gdb))
 	r.MaxMultipartMemory = int64(cfg.ServerBodyLimit)

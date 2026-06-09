@@ -1,20 +1,58 @@
-import { BookOpenText, ChevronLeft, ChevronRight, FolderKanban, Library, LogOut, PenSquare, Settings, Sparkles } from "lucide-react";
-import { useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
+import { BookOpenText, ChevronLeft, ChevronRight, FolderKanban, Library, LogOut, PenSquare, Server, Settings, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { NavLink, Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { useAuth } from "@/app/auth";
 import { bookDashboardPath, bookReaderPath, bookResourcesPath, parseBookId, settingsPath } from "@/lib/routes";
+import { isTauri } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
 
 export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading, isAuthenticated } = useAuth();
   const currentBookId = parseBookId(params.bookId);
-  const isAuthRoute = location.pathname === "/app/login" || location.pathname === "/app/register";
-  const isBookDashboardRoute = currentBookId !== null && (location.pathname === bookDashboardPath(currentBookId) || location.pathname.startsWith(`${bookDashboardPath(currentBookId)}/chapters/`));
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [backendChecked, setBackendChecked] = useState(!isTauri);
+
+  useEffect(() => {
+    if (!isTauri) return;
+    const baseUrl = localStorage.getItem("api-base-url");
+    if (!baseUrl) {
+      setBackendChecked(true);
+      return;
+    }
+    const w = window as { __TAURI__?: { core: { invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> } } };
+    w.__TAURI__!.core.invoke("check_health", { url: baseUrl })
+      .then(() => {
+        setBackendChecked(true);
+      })
+      .catch(() => {
+        setBackendChecked(true);
+      });
+  }, []);
+
+  const isAuthRoute = location.pathname === "/app/login" || location.pathname === "/app/register";
+  const isConnectRoute = location.pathname === "/app/connect";
+  const isBookDashboardRoute = currentBookId !== null && (location.pathname === bookDashboardPath(currentBookId) || location.pathname.startsWith(`${bookDashboardPath(currentBookId)}/chapters/`));
+
+  if (isConnectRoute) {
+    return <Outlet />;
+  }
+
+  if (!backendChecked) {
+    return <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">正在检查后端连接...</div>;
+  }
+
+  if (isTauri && localStorage.getItem("api-base-url") === null) {
+    return <Navigate to="/app/connect" replace />;
+  }
+
+  if (isAuthRoute || isLoading || !isAuthenticated) {
+    return <Outlet />;
+  }
+
   const navigation = [
     {
       label: "书籍总览",
@@ -47,10 +85,17 @@ export function AppShell() {
       icon: Settings,
       disabled: false,
     },
+    ...(isTauri
+      ? [
+          {
+            label: "服务端设置",
+            to: "/app/server",
+            icon: Server,
+            disabled: false,
+          },
+        ]
+      : []),
   ];
-  if (isAuthRoute) {
-    return <Outlet />;
-  }
 
   return (
     <div className="min-h-screen text-foreground">

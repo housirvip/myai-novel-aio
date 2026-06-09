@@ -111,6 +111,8 @@ type Config struct {
 	ServerPort      int
 	ServerBodyLimit int
 
+	CORSAllowedOrigins []string
+
 	WebUIDistPath string
 
 	AuthSessionSecret   string
@@ -201,6 +203,8 @@ func Load() (*Config, error) {
 		ServerHost:      getStr("SERVER_HOST", "127.0.0.1"),
 		ServerPort:      getInt("SERVER_PORT", 3000),
 		ServerBodyLimit: getInt("SERVER_BODY_LIMIT", 1048576),
+
+		CORSAllowedOrigins: parseCORSOrigins(os.Getenv("CORS_ALLOWED_ORIGINS")),
 
 		WebUIDistPath: strings.TrimSpace(os.Getenv("WEBUI_DIST_PATH")),
 
@@ -331,4 +335,19 @@ func absPath(p string) string {
 		return p
 	}
 	return abs
+}
+
+func parseCORSOrigins(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	var origins []string
+	for _, o := range strings.Split(raw, ",") {
+		o = strings.TrimSpace(o)
+		if o != "" {
+			origins = append(origins, o)
+		}
+	}
+	return origins
 }

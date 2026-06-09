@@ -4,12 +4,14 @@ import { AppShell } from "@/app/layouts/AppShell";
 import { AuthOnlyRoute, ProtectedRoute } from "@/app/route-guards";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
+import { ConnectPage } from "@/pages/connect/ConnectPage";
 import { BooksPage } from "@/pages/books/BooksPage";
 import { BookDashboardPage } from "@/pages/books/BookDashboardPage";
 import { ChapterWorkbenchPage } from "@/pages/chapters/ChapterWorkbenchPage";
 import { ChapterReaderPage } from "@/pages/library/ChapterReaderPage";
 import { ResourcesPage } from "@/pages/resources/ResourcesPage";
 import { UserSettingsPage } from "@/pages/settings/UserSettingsPage";
+import { ServerPage } from "@/pages/server/ServerPage";
 import { NotFoundPage } from "@/pages/system/NotFoundPage";
 
 const router = createBrowserRouter(
@@ -19,6 +21,10 @@ const router = createBrowserRouter(
       element: <AppShell />,
       children: [
         { index: true, element: <Navigate to="/app" replace /> },
+        {
+          path: "app/connect",
+          element: <ConnectPage />,
+        },
         {
           path: "app/login",
           element: (
@@ -80,6 +86,14 @@ const router = createBrowserRouter(
           element: (
             <ProtectedRoute>
               <UserSettingsPage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "app/server",
+          element: (
+            <ProtectedRoute>
+              <ServerPage />
             </ProtectedRoute>
           ),
         },

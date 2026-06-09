@@ -50,7 +50,8 @@ func (h *AuthHandler) register(c *gin.Context) {
 		return
 	}
 	h.writeSessionCookie(c, res.SessionToken)
-	created(c, res.User)
+	signed := h.svc.SignSessionToken(res.SessionToken)
+	created(c, gin.H{"user": res.User, "token": signed})
 }
 
 func (h *AuthHandler) login(c *gin.Context) {
@@ -65,11 +66,17 @@ func (h *AuthHandler) login(c *gin.Context) {
 		return
 	}
 	h.writeSessionCookie(c, res.SessionToken)
-	ok(c, res.User)
+	signed := h.svc.SignSessionToken(res.SessionToken)
+	ok(c, gin.H{"user": res.User, "token": signed})
 }
 
 func (h *AuthHandler) logout(c *gin.Context) {
 	raw := readSessionCookie(c.GetHeader("Cookie"), h.cfg.AuthCookieName)
+	if raw == "" {
+		if hdr := c.GetHeader("Authorization"); strings.HasPrefix(hdr, "Bearer ") {
+			raw = strings.TrimSpace(strings.TrimPrefix(hdr, "Bearer "))
+		}
+	}
 	token := h.svc.VerifySignedSessionToken(raw)
 	if token != "" {
 		_ = h.svc.Logout(c.Request.Context(), token)

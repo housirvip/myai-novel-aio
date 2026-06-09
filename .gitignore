@@ -26,6 +26,11 @@ Thumbs.db
 *.swp
 *.swo
 
+# Tauri
+tauri/target/
+tauri/gen/
+tauri/binaries/
+
 # Test & Build
 *.exe
 *.test

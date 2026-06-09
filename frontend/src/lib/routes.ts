@@ -27,3 +27,7 @@ export function chapterWorkbenchPath(bookId: number, chapterNo: number) {
 export function settingsPath() {
   return "/app/settings";
 }
+
+export function serverPath() {
+  return "/app/server";
+}

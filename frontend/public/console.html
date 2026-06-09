@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>myai-novel - 控制台</title>
+  <link rel="stylesheet" href="console-styles.css" />
+</head>
+<body>
+  <div class="console-container">
+    <div class="console-header">
+      <h2>后端控制台</h2>
+      <div class="console-controls">
+        <span id="status-badge" class="badge badge-stopped">已停止</span>
+        <button id="btn-start" class="btn btn-primary btn-sm">启动</button>
+        <button id="btn-stop" class="btn btn-danger btn-sm" disabled>停止</button>
+      </div>
+    </div>
+
+    <div class="console-info">
+      <div class="info-row">
+        <span class="info-label">状态:</span>
+        <span id="info-status">未运行</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">地址:</span>
+        <span id="info-url">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">PID:</span>
+        <span id="info-pid">-</span>
+      </div>
+    </div>
+
+    <div class="log-section">
+      <div class="log-toolbar">
+        <span class="log-title">日志输出</span>
+        <div class="log-actions">
+          <label class="checkbox-label">
+            <input type="checkbox" id="auto-scroll" checked /> 自动滚动
+          </label>
+          <button id="btn-clear" class="btn btn-ghost btn-sm">清空</button>
+        </div>
+      </div>
+      <div id="log-output" class="log-output"></div>
+    </div>
+  </div>
+
+  <script>
+    if (!window.__TAURI__) {
+      throw new Error('window.__TAURI__ is not available');
+    }
+
+    const { invoke } = window.__TAURI__.core;
+    const { listen } = window.__TAURI__.event;
+
+    const btnStart = document.getElementById('btn-start');
+    const btnStop = document.getElementById('btn-stop');
+    const btnClear = document.getElementById('btn-clear');
+    const logOutput = document.getElementById('log-output');
+    const autoScroll = document.getElementById('auto-scroll');
+    const statusBadge = document.getElementById('status-badge');
+    const infoStatus = document.getElementById('info-status');
+    const infoUrl = document.getElementById('info-url');
+    const infoPid = document.getElementById('info-pid');
+
+    function updateUI(status) {
+      if (status.running) {
+        statusBadge.className = 'badge badge-running';
+        statusBadge.textContent = '运行中';
+        infoStatus.textContent = '运行中';
+        infoUrl.textContent = status.url || '-';
+        infoPid.textContent = status.pid || '-';
+        btnStart.disabled = true;
+        btnStop.disabled = false;
+      } else {
+        statusBadge.className = 'badge badge-stopped';
+        statusBadge.textContent = '已停止';
+        infoStatus.textContent = '未运行';
+        infoUrl.textContent = '-';
+        infoPid.textContent = '-';
+        btnStart.disabled = false;
+        btnStop.disabled = true;
+      }
+    }
+
+    function appendLog(text) {
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      if (text.startsWith('[ERR]')) {
+        line.classList.add('log-error');
+      }
+      const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+      line.textContent = '[' + time + '] ' + text;
+      logOutput.appendChild(line);
+
+      if (logOutput.children.length > 5000) {
+        logOutput.removeChild(logOutput.firstChild);
+      }
+
+      if (autoScroll.checked) {
+        logOutput.scrollTop = logOutput.scrollHeight;
+      }
+    }
+
+    listen('backend-log', (event) => {
+      appendLog(event.payload);
+    });
+
+    listen('backend-status-changed', (event) => {
+      updateUI(event.payload);
+    });
+
+    btnStart.addEventListener('click', async () => {
+      btnStart.disabled = true;
+      appendLog('[SYS] 正在启动后端...');
+      try {
+        const url = await invoke('start_backend', { port: null });
+        appendLog('[SYS] 后端已启动: ' + url);
+      } catch (e) {
+        appendLog('[SYS] 启动失败: ' + e);
+        btnStart.disabled = false;
+      }
+    });
+
+    btnStop.addEventListener('click', async () => {
+      btnStop.disabled = true;
+      appendLog('[SYS] 正在停止后端...');
+      try {
+        await invoke('stop_backend');
+        appendLog('[SYS] 后端已停止');
+      } catch (e) {
+        appendLog('[SYS] 停止失败: ' + e);
+      }
+      refreshStatus();
+    });
+
+    btnClear.addEventListener('click', () => {
+      logOutput.innerHTML = '';
+    });
+
+    async function refreshStatus() {
+      try {
+        const status = await invoke('backend_status');
+        updateUI(status);
+      } catch (_) {}
+    }
+
+    refreshStatus();
+    setInterval(refreshStatus, 3000);
+  </script>
+</body>
+</html>

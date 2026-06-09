@@ -1,0 +1,402 @@
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+
+import { isTauri } from "@/lib/tauri";
+
+const ANSI_FG: Record<string, string> = {
+  "30": "text-slate-500", "31": "text-rose-400", "32": "text-emerald-400",
+  "33": "text-amber-400", "34": "text-blue-400", "35": "text-purple-400",
+  "36": "text-cyan-400", "37": "text-slate-200",
+  "90": "text-slate-400", "91": "text-rose-300", "92": "text-emerald-300",
+  "93": "text-amber-300", "94": "text-blue-300", "95": "text-purple-300",
+  "96": "text-cyan-300", "97": "text-white",
+};
+
+function parseAnsiColor(params: string): string {
+  if (!params || params === "0") return "";
+  for (const p of params.split(";")) {
+    if (ANSI_FG[p]) return ANSI_FG[p];
+  }
+  return "";
+}
+
+function renderAnsiText(text: string): ReactNode {
+  const regex = /\x1b\[([\d;]*)m/g;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let currentClass = "";
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      const segment = text.slice(lastIndex, match.index);
+      parts.push(currentClass ? <span key={lastIndex} className={currentClass}>{segment}</span> : segment);
+    }
+    currentClass = parseAnsiColor(match[1]);
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    const segment = text.slice(lastIndex);
+    parts.push(currentClass ? <span key={lastIndex} className={currentClass}>{segment}</span> : segment);
+  }
+
+  return parts.length > 1 ? parts : parts[0] ?? text;
+}
+
+interface BackendStatus {
+  running: boolean;
+  url: string;
+  pid: number | null;
+}
+
+function getTauri() {
+  return (window as { __TAURI__?: { core: { invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> }; event: { listen: (event: string, handler: (event: { payload: unknown }) => void) => Promise<() => void> } } }).__TAURI__!;
+}
+
+export function ServerPage() {
+  const [status, setStatus] = useState<BackendStatus>({ running: false, url: "", pid: null });
+  const [logs, setLogs] = useState<{ id: number; text: string; isError: boolean }[]>([]);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [backendUrl, setBackendUrl] = useState(() => localStorage.getItem("api-base-url") || "http://127.0.0.1:3030");
+  const [envContent, setEnvContent] = useState("");
+  const [envOriginal, setEnvOriginal] = useState("");
+  const [envLoading, setEnvLoading] = useState(false);
+  const [envSaveMsg, setEnvSaveMsg] = useState("");
+  const logRef = useRef<HTMLDivElement>(null);
+  const logIdRef = useRef(0);
+
+  const envDirty = envContent !== envOriginal;
+
+  const refreshStatus = useCallback(async () => {
+    if (!isTauri) return;
+    try {
+      const s = (await getTauri().core.invoke("backend_status")) as BackendStatus;
+      setStatus(s);
+    } catch {}
+  }, []);
+
+  const loadEnvFile = useCallback(async () => {
+    if (!isTauri) return;
+    setEnvLoading(true);
+    try {
+      const content = (await getTauri().core.invoke("read_env_file")) as string;
+      setEnvContent(content);
+      setEnvOriginal(content);
+      setEnvSaveMsg("");
+    } catch (e) {
+      setEnvSaveMsg(`加载失败: ${e}`);
+    } finally {
+      setEnvLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isTauri) return;
+    refreshStatus();
+    loadEnvFile();
+    const interval = setInterval(refreshStatus, 5000);
+    return () => clearInterval(interval);
+  }, [refreshStatus, loadEnvFile]);
+
+  useEffect(() => {
+    if (!isTauri) return;
+    getTauri().core.invoke("get_backend_logs").then((existing) => {
+      const lines = existing as string[];
+      if (lines.length > 0) {
+        setLogs(lines.map((text) => ({
+          id: ++logIdRef.current,
+          text,
+          isError: text.startsWith("[ERR]"),
+        })));
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!isTauri) return;
+    const unlisteners: Array<() => void> = [];
+
+    getTauri().event.listen("backend-log", (event) => {
+      const text = event.payload as string;
+      const isError = text.startsWith("[ERR]");
+      setLogs((prev) => {
+        const next = [...prev, { id: ++logIdRef.current, text, isError }];
+        return next.length > 5000 ? next.slice(-5000) : next;
+      });
+    }).then((fn) => unlisteners.push(fn));
+
+    getTauri().event.listen("backend-status-changed", (event) => {
+      setStatus(event.payload as BackendStatus);
+    }).then((fn) => unlisteners.push(fn));
+
+    return () => { unlisteners.forEach((fn) => fn()); };
+  }, []);
+
+  useEffect(() => {
+    if (autoScroll && logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [logs, autoScroll]);
+
+  async function handleStart() {
+    setActionLoading(true);
+    setActionError("");
+    try {
+      await getTauri().core.invoke("start_backend", { port: null });
+    } catch (e) {
+      setActionError(`启动失败: ${e}`);
+    } finally {
+      setActionLoading(false);
+      refreshStatus();
+    }
+  }
+
+  async function handleStop() {
+    setActionLoading(true);
+    setActionError("");
+    try {
+      await getTauri().core.invoke("stop_backend");
+    } catch (e) {
+      setActionError(`停止失败: ${e}`);
+    } finally {
+      setActionLoading(false);
+      refreshStatus();
+    }
+  }
+
+  async function handleRestart() {
+    setActionLoading(true);
+    setActionError("");
+    try {
+      await getTauri().core.invoke("restart_backend", { port: null });
+    } catch (e) {
+      setActionError(`重启失败: ${e}`);
+    } finally {
+      setActionLoading(false);
+      refreshStatus();
+    }
+  }
+
+  async function handleReconnect() {
+    const target = backendUrl.trim().replace(/\/+$/, "");
+    if (!target) return;
+    setActionLoading(true);
+    setActionError("");
+    try {
+      const ok = (await getTauri().core.invoke("check_health", { url: target })) as boolean;
+      if (!ok) {
+        setActionError("无法连接到后端，请确认地址正确且服务已启动");
+        return;
+      }
+      localStorage.setItem("api-base-url", target);
+      window.location.href = "/";
+    } catch (e) {
+      setActionError(`连接失败: ${e}`);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleEnvSave() {
+    setEnvLoading(true);
+    setEnvSaveMsg("");
+    try {
+      await getTauri().core.invoke("write_env_file", { content: envContent });
+      setEnvOriginal(envContent);
+      setEnvSaveMsg(status.running ? "配置已保存，重启后端后生效" : "配置已保存");
+    } catch (e) {
+      setEnvSaveMsg(`保存失败: ${e}`);
+    } finally {
+      setEnvLoading(false);
+    }
+  }
+
+  if (!isTauri) {
+    return (
+      <section className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-semibold text-slate-950">服务端设置</h2>
+          <p className="mt-1 text-sm text-slate-500">此功能仅在桌面客户端中可用。</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold text-slate-950">服务端设置</h2>
+        <p className="mt-1 text-sm text-slate-500">管理 Go 后端的启停、配置与实时日志</p>
+      </div>
+
+      {actionError && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {actionError}
+        </div>
+      )}
+
+      <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-950">后端状态</h3>
+        <div className="mt-4 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className={`inline-block h-2.5 w-2.5 rounded-full ${status.running ? "bg-emerald-500" : "bg-slate-300"}`} />
+            <span className="text-sm font-medium text-slate-900">{status.running ? "运行中" : "已停止"}</span>
+          </div>
+
+          {status.running && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="text-xs text-slate-500">地址</div>
+                <div className="mt-1 text-sm font-medium text-slate-950">{status.url || "—"}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="text-xs text-slate-500">PID</div>
+                <div className="mt-1 text-sm font-medium text-slate-950">{status.pid ?? "—"}</div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            {status.running ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleRestart}
+                  disabled={actionLoading}
+                  className="rounded-2xl bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  重启后端
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStop}
+                  disabled={actionLoading}
+                  className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50"
+                >
+                  停止后端
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStart}
+                disabled={actionLoading}
+                className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              >
+                启动后端
+              </button>
+            )}
+          </div>
+
+          <div className="border-t border-slate-100 pt-4">
+            <div className="text-xs text-slate-500 mb-2">后端连接地址</div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={backendUrl}
+                onChange={(e) => setBackendUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleReconnect()}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                placeholder="http://127.0.0.1:3030"
+              />
+              <button
+                type="button"
+                onClick={handleReconnect}
+                disabled={actionLoading}
+                className="shrink-0 rounded-2xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+              >
+                重新连接
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-950">环境配置</h3>
+            <p className="mt-1 text-xs text-slate-500">编辑 Go 后端的 .env 配置文件</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={loadEnvFile}
+              disabled={envLoading}
+              className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+            >
+              重新加载
+            </button>
+            <button
+              type="button"
+              onClick={handleEnvSave}
+              disabled={envLoading || !envDirty}
+              className="rounded-xl bg-slate-950 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+            >
+              保存配置
+            </button>
+          </div>
+        </div>
+        <textarea
+          value={envContent}
+          onChange={(e) => { setEnvContent(e.target.value); setEnvSaveMsg(""); }}
+          spellCheck={false}
+          className="mt-4 h-[360px] w-full resize-y rounded-2xl bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-300 outline-none focus:ring-2 focus:ring-slate-400"
+        />
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-slate-400">
+            SERVER_PORT、SERVER_HOST、CORS_ALLOWED_ORIGINS 由 Tauri 管理，.env 中的值会被覆盖
+          </p>
+          {envSaveMsg && (
+            <p className={`text-xs font-medium ${envSaveMsg.startsWith("配置已保存") ? "text-emerald-600" : "text-rose-600"}`}>
+              {envSaveMsg}
+            </p>
+          )}
+          {envDirty && (
+            <p className="text-xs text-amber-600">有未保存的修改</p>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-950">实时日志</h3>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoScroll}
+                onChange={(e) => setAutoScroll(e.target.checked)}
+                className="accent-slate-950"
+              />
+              自动滚动
+            </label>
+            <button
+              type="button"
+              onClick={() => setLogs([])}
+              className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
+            >
+              清空
+            </button>
+          </div>
+        </div>
+        <div
+          ref={logRef}
+          className="mt-4 h-[400px] overflow-y-auto rounded-2xl bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-300"
+        >
+          {logs.length === 0 ? (
+            <div className="text-slate-500">暂无日志，启动后端后将在此显示实时输出...</div>
+          ) : (
+            logs.map((log) => (
+              <div key={log.id}>
+                {renderAnsiText(log.text)}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
