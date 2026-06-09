@@ -3,6 +3,8 @@ import { vi } from "vitest";
 
 import { AppShell } from "@/app/layouts/AppShell";
 import * as authApi from "@/lib/auth-api";
+import * as booksApi from "@/lib/books-api";
+import type { BookView } from "@/lib/types";
 import { renderWithRoute } from "@/test/utils";
 
 describe("AppShell", () => {
@@ -53,5 +55,27 @@ describe("AppShell", () => {
     renderWithRoute(<AppShell />, "/app", "/app");
 
     expect(await screen.findByRole("button", { name: "切换主题" })).toBeInTheDocument();
+  });
+
+  it("shows book nav items when on a book route", async () => {
+    vi.spyOn(booksApi, "listBooks").mockResolvedValue([
+      { id: 1, title: "测试书籍", status: "active" } as BookView,
+    ]);
+
+    renderWithRoute(<AppShell />, "/app/books/1", "/app/books/:bookId/*");
+
+    expect(await screen.findByText("测试书籍")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "总览" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "资源" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "阅读" })).toBeInTheDocument();
+  });
+
+  it("hides book nav items when no bookId in route", async () => {
+    renderWithRoute(<AppShell />, "/app", "/app");
+
+    expect(await screen.findByText("从书库选择一本书开始创作")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "总览" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "资源" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "阅读" })).not.toBeInTheDocument();
   });
 });

@@ -42,6 +42,15 @@ export function AppShell() {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [mobileMenuOpen]);
+
   const isAuthRoute = location.pathname === "/app/login" || location.pathname === "/app/register";
   const isConnectRoute = location.pathname === "/app/connect";
 
@@ -77,7 +86,7 @@ export function AppShell() {
 
       {/* Mobile sidebar overlay */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="导航菜单">
           <div
             className="absolute inset-0 bg-black/50 animate-in fade-in-0 duration-200"
             onClick={() => setMobileMenuOpen(false)}

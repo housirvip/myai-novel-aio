@@ -12,7 +12,7 @@ import {
   Settings,
   Sparkles,
 } from "lucide-react";
-import { NavLink, useParams } from "react-router-dom";
+import { NavLink, useLocation, useParams } from "react-router-dom";
 
 import { Separator } from "@/components/ui/separator";
 import { listBooks } from "@/lib/books-api";
@@ -34,6 +34,7 @@ type AppSidebarProps = {
 
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const params = useParams();
+  const location = useLocation();
   const currentBookId = parseBookId(params.bookId);
 
   const booksQuery = useQuery({
