@@ -1,0 +1,34 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: myai-novel-aio:dev
+    container_name: myai-novel-aio
+    ports:
+      - "3000:3000"
+    environment:
+      SERVER_HOST: "0.0.0.0"
+      SERVER_PORT: "3000"
+      DB_CLIENT: "sqlite"
+      DB_SQLITE_PATH: "/app/data/novel.db"
+      LLM_PROVIDER: "${LLM_PROVIDER:-mock}"
+      LOG_FORMAT: "json"
+      WEBUI_DIST_PATH: "/app/webui"
+      AUTH_SESSION_SECRET: "${AUTH_SESSION_SECRET:-dev-session-secret-change-me}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+    volumes:
+      - novel_data:/app/data
+      - novel_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:3000/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  novel_data:
+  novel_logs:
