@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { isTauri } from "@/lib/tauri";
 
@@ -23,7 +22,6 @@ interface BackendStatus {
 }
 
 export function ConnectPage() {
-  const navigate = useNavigate();
   const [url, setUrl] = useState(() => localStorage.getItem("api-base-url") || "http://127.0.0.1:3030");
   const [status, setStatus] = useState<{ type: "idle" | "info" | "success" | "error"; text: string }>({ type: "idle", text: "" });
   const [loading, setLoading] = useState(false);
@@ -130,8 +128,8 @@ export function ConnectPage() {
   }
 
   function handleSkip() {
-    localStorage.removeItem("api-base-url");
-    navigate("/app", { replace: true });
+    localStorage.setItem("api-base-url", "");
+    window.location.href = "/";
   }
 
   return (

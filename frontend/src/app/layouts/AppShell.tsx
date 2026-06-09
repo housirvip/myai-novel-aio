@@ -15,17 +15,24 @@ export function AppShell() {
   const currentBookId = parseBookId(params.bookId);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [backendChecked, setBackendChecked] = useState(!isTauri);
+  const [backendHealthy, setBackendHealthy] = useState(!isTauri);
 
   useEffect(() => {
     if (!isTauri) return;
     const baseUrl = localStorage.getItem("api-base-url");
-    if (!baseUrl) {
+    if (baseUrl === null) {
+      setBackendChecked(true);
+      return;
+    }
+    if (baseUrl === "") {
+      setBackendHealthy(true);
       setBackendChecked(true);
       return;
     }
     const w = window as { __TAURI__?: { core: { invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> } } };
     w.__TAURI__!.core.invoke("check_health", { url: baseUrl })
-      .then(() => {
+      .then((healthy) => {
+        if (healthy) setBackendHealthy(true);
         setBackendChecked(true);
       })
       .catch(() => {
@@ -45,7 +52,7 @@ export function AppShell() {
     return <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">正在检查后端连接...</div>;
   }
 
-  if (isTauri && localStorage.getItem("api-base-url") === null) {
+  if (isTauri && !backendHealthy) {
     return <Navigate to="/app/connect" replace />;
   }
 
