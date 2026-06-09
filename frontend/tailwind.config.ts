@@ -6,40 +6,52 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        border: "hsl(240 5.9% 90%)",
-        input: "hsl(240 5.9% 90%)",
-        ring: "hsl(251 91% 67%)",
-        background: "hsl(220 33% 98%)",
-        foreground: "hsl(224 39% 11%)",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(251 91% 67%)",
-          foreground: "hsl(210 20% 98%)",
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          DEFAULT: "hsl(250 30% 95%)",
-          foreground: "hsl(250 30% 24%)",
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
         },
         muted: {
-          DEFAULT: "hsl(240 5% 96%)",
-          foreground: "hsl(240 4% 46%)",
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(43 96% 56%)",
-          foreground: "hsl(26 83% 14%)",
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
         },
         card: {
-          DEFAULT: "hsl(0 0% 100%)",
-          foreground: "hsl(224 39% 11%)",
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
         },
         destructive: {
-          DEFAULT: "hsl(0 84% 60%)",
-          foreground: "hsl(210 20% 98%)",
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
         },
       },
       borderRadius: {
-        lg: "1rem",
-        md: "0.875rem",
-        sm: "0.75rem",
+        xl: "0.75rem",
+        lg: "0.5rem",
+        md: "0.375rem",
+        sm: "0.25rem",
       },
       boxShadow: {
         glow: "0 10px 40px rgba(109, 91, 255, 0.18)",
@@ -51,18 +63,23 @@ const config: Config = {
           '"PingFang SC"',
           '"Microsoft YaHei"',
           "system-ui",
-          "sans-serif"
+          "sans-serif",
         ],
         serif: [
           '"Source Han Serif SC"',
           '"Songti SC"',
           '"STSong"',
-          "serif"
+          "serif",
+        ],
+        mono: [
+          '"JetBrains Mono"',
+          '"Fira Code"',
+          "monospace",
         ],
       },
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 };
 
 export default config;

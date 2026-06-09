@@ -4,6 +4,7 @@ import { render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import { AuthProvider } from "@/app/auth";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export function createTestQueryClient() {
   return new QueryClient({
@@ -24,15 +25,17 @@ export function renderWithRoute(ui: ReactElement, route: string, path = "*") {
 
   function Wrapper({ children }: PropsWithChildren) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <MemoryRouter initialEntries={[route]}>
-            <Routes>
-              <Route path={path} element={children} />
-            </Routes>
-          </MemoryRouter>
-        </AuthProvider>
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <MemoryRouter initialEntries={[route]}>
+              <Routes>
+                <Route path={path} element={children} />
+              </Routes>
+            </MemoryRouter>
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     );
   }
 
