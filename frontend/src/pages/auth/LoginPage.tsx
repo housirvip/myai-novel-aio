@@ -2,6 +2,10 @@ import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/app/auth";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { formatApiErrorMessage } from "@/lib/api";
 
 export function LoginPage() {
@@ -35,28 +39,37 @@ export function LoginPage() {
   };
 
   return (
-    <section className="mx-auto flex min-h-screen max-w-md items-center px-4 py-10">
-      <div className="w-full rounded-xl border border-border bg-card p-8 shadow-glow backdrop-blur">
-        <h1 className="text-2xl font-semibold text-foreground">登录 WebUI</h1>
-        <p className="mt-2 text-sm text-muted-foreground">使用你的账号进入多用户写作空间。</p>
-        <div className="mt-6 space-y-4">
-          <label className="block space-y-2 text-sm text-muted-foreground">
-            <span>邮箱</span>
-            <input value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground outline-none transition focus:border-primary" type="email" autoComplete="email" />
-          </label>
-          <label className="block space-y-2 text-sm text-muted-foreground">
-            <span>密码</span>
-            <input value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground outline-none transition focus:border-primary" type="password" autoComplete="current-password" />
-          </label>
-          {errorMessage && <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">{errorMessage}</div>}
-          <button onClick={submit} disabled={submitting || !email.trim() || !password} className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:opacity-60">
-            {submitting ? "登录中..." : "登录"}
-          </button>
-        </div>
-        <div className="mt-5 text-sm text-muted-foreground">
-          还没有账号？ <Link to="/app/register" className="text-primary hover:underline">去注册</Link>
-        </div>
-      </div>
+    <section className="relative mx-auto flex min-h-screen max-w-md items-center overflow-hidden px-4 py-10">
+      {/* Decorative gradient orbs */}
+      <div className="pointer-events-none absolute -top-32 -left-32 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 h-48 w-48 rounded-full bg-accent/15 blur-3xl" />
+      <div className="pointer-events-none absolute top-1/3 right-0 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
+
+      <Card className="relative w-full shadow-elevation-3 animate-fade-up">
+        <CardHeader className="p-8 pb-0">
+          <CardTitle className="text-2xl text-foreground">登录 WebUI</CardTitle>
+          <CardDescription>使用你的账号进入多用户写作空间。</CardDescription>
+        </CardHeader>
+        <CardContent className="p-8 pt-6">
+          <div className="space-y-4">
+            <label className="block space-y-2 text-sm text-muted-foreground">
+              <span>邮箱</span>
+              <Input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" />
+            </label>
+            <label className="block space-y-2 text-sm text-muted-foreground">
+              <span>密码</span>
+              <Input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" />
+            </label>
+            {errorMessage && <Alert variant="destructive"><AlertDescription>{errorMessage}</AlertDescription></Alert>}
+            <Button onClick={submit} disabled={submitting || !email.trim() || !password} className="w-full">
+              {submitting ? "登录中..." : "登录"}
+            </Button>
+          </div>
+          <div className="mt-5 text-sm text-muted-foreground">
+            还没有账号？ <Link to="/app/register" className="text-primary hover:underline">去注册</Link>
+          </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }
