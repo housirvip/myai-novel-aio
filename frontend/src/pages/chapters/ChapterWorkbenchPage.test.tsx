@@ -1047,7 +1047,19 @@ describe("ChapterWorkbenchPage", () => {
     });
   });
 
-  it("shows manualEntityRefs summary and passes refs to authorIntent generation in replan dialog", async () => {
+  it("shows manualEntityRefs summary and passes refs to authorIntent generation in plan dialog", async () => {
+    vi.mocked(chaptersApi.getChapterWorkflowState).mockResolvedValue({
+      status: "planned",
+      hasPlan: true,
+      hasDraft: false,
+      hasReview: false,
+      hasFinal: false,
+      currentPlanId: 101,
+      currentDraftId: null,
+      currentReviewId: null,
+      currentFinalId: null,
+      availableActions: ["plan", "draft"],
+    } as never);
     vi.mocked(workflowsApi.getWorkflowTask).mockResolvedValue({
       id: 9000,
       workflowType: "author_intent",
@@ -1065,13 +1077,13 @@ describe("ChapterWorkbenchPage", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("checkbox", { name: /林夜/ })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "重新 plan" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "生成 plan" })).toBeEnabled();
     });
 
     fireEvent.click(screen.getByRole("checkbox", { name: /林夜/ }));
-    fireEvent.click(screen.getByRole("button", { name: "重新 plan" }));
+    fireEvent.click(screen.getByRole("button", { name: "生成 plan" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "重新 plan" });
+    const dialog = await screen.findByRole("dialog", { name: "生成 plan" });
     expect(within(dialog).getByText("本次带入的 manualEntityRefs")).toBeInTheDocument();
     expect(within(dialog).getByText("角色 1")).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "生成 authorIntent" }));
@@ -1089,7 +1101,7 @@ describe("ChapterWorkbenchPage", () => {
     });
 
     await waitFor(() => {
-      expect((within(dialog).getByLabelText("本次重新 plan 意图") as HTMLTextAreaElement).value).toBe("生成的意图草案");
+      expect((within(dialog).getByLabelText("本次 plan 意图") as HTMLTextAreaElement).value).toBe("生成的意图草案");
     });
   });
 
@@ -1283,33 +1295,57 @@ describe("ChapterWorkbenchPage", () => {
     });
   });
 
-  it("opens replan dialog before rerunning plan", async () => {
+  it("opens plan dialog before running plan", async () => {
+    vi.mocked(chaptersApi.getChapterWorkflowState).mockResolvedValue({
+      status: "planned",
+      hasPlan: true,
+      hasDraft: false,
+      hasReview: false,
+      hasFinal: false,
+      currentPlanId: 101,
+      currentDraftId: null,
+      currentReviewId: null,
+      currentFinalId: null,
+      availableActions: ["plan", "draft"],
+    } as never);
     renderWithRoute(<ChapterWorkbenchPage />, "/app/books/1/chapters/2", "/app/books/:bookId/chapters/:chapterNo");
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "重新 plan" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "生成 plan" })).toBeEnabled();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "重新 plan" }));
+    fireEvent.click(screen.getByRole("button", { name: "生成 plan" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "重新 plan" });
-    expect(within(dialog).getByLabelText("本次重新 plan 意图")).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "生成 plan" });
+    expect(within(dialog).getByLabelText("本次 plan 意图")).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "取消" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "确定" })).toBeInTheDocument();
     expect(workflowsApi.startPlanTask).not.toHaveBeenCalled();
   });
 
-  it("passes dialog authorIntent when confirming replan", async () => {
+  it("passes dialog authorIntent when confirming plan", async () => {
+    vi.mocked(chaptersApi.getChapterWorkflowState).mockResolvedValue({
+      status: "planned",
+      hasPlan: true,
+      hasDraft: false,
+      hasReview: false,
+      hasFinal: false,
+      currentPlanId: 101,
+      currentDraftId: null,
+      currentReviewId: null,
+      currentFinalId: null,
+      availableActions: ["plan", "draft"],
+    } as never);
     renderWithRoute(<ChapterWorkbenchPage />, "/app/books/1/chapters/2", "/app/books/:bookId/chapters/:chapterNo");
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "重新 plan" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "生成 plan" })).toBeEnabled();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "重新 plan" }));
+    fireEvent.click(screen.getByRole("button", { name: "生成 plan" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "重新 plan" });
-    fireEvent.change(within(dialog).getByLabelText("本次重新 plan 意图"), { target: { value: "强化宗门旧案线索" } });
+    const dialog = await screen.findByRole("dialog", { name: "生成 plan" });
+    fireEvent.change(within(dialog).getByLabelText("本次 plan 意图"), { target: { value: "强化宗门旧案线索" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "确定" }));
 
     await waitFor(() => {
@@ -1322,19 +1358,31 @@ describe("ChapterWorkbenchPage", () => {
       );
     });
     await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: "重新 plan" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "生成 plan" })).not.toBeInTheDocument();
     });
   });
 
-  it("allows empty authorIntent in replan dialog", async () => {
+  it("allows empty authorIntent in plan dialog", async () => {
+    vi.mocked(chaptersApi.getChapterWorkflowState).mockResolvedValue({
+      status: "planned",
+      hasPlan: true,
+      hasDraft: false,
+      hasReview: false,
+      hasFinal: false,
+      currentPlanId: 101,
+      currentDraftId: null,
+      currentReviewId: null,
+      currentFinalId: null,
+      availableActions: ["plan", "draft"],
+    } as never);
     renderWithRoute(<ChapterWorkbenchPage />, "/app/books/1/chapters/2", "/app/books/:bookId/chapters/:chapterNo");
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "重新 plan" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "生成 plan" })).toBeEnabled();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "重新 plan" }));
-    const dialog = await screen.findByRole("dialog", { name: "重新 plan" });
+    fireEvent.click(screen.getByRole("button", { name: "生成 plan" }));
+    const dialog = await screen.findByRole("dialog", { name: "生成 plan" });
     fireEvent.click(within(dialog).getByRole("button", { name: "确定" }));
 
     await waitFor(() => {
@@ -1348,26 +1396,38 @@ describe("ChapterWorkbenchPage", () => {
     });
   });
 
-  it("cancels replan dialog without firing workflow and clears temporary input", async () => {
+  it("cancels plan dialog without firing workflow and clears temporary input", async () => {
+    vi.mocked(chaptersApi.getChapterWorkflowState).mockResolvedValue({
+      status: "planned",
+      hasPlan: true,
+      hasDraft: false,
+      hasReview: false,
+      hasFinal: false,
+      currentPlanId: 101,
+      currentDraftId: null,
+      currentReviewId: null,
+      currentFinalId: null,
+      availableActions: ["plan", "draft"],
+    } as never);
     renderWithRoute(<ChapterWorkbenchPage />, "/app/books/1/chapters/2", "/app/books/:bookId/chapters/:chapterNo");
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "重新 plan" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "生成 plan" })).toBeEnabled();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "重新 plan" }));
-    let dialog = await screen.findByRole("dialog", { name: "重新 plan" });
-    fireEvent.change(within(dialog).getByLabelText("本次重新 plan 意图"), { target: { value: "临时意图" } });
+    fireEvent.click(screen.getByRole("button", { name: "生成 plan" }));
+    let dialog = await screen.findByRole("dialog", { name: "生成 plan" });
+    fireEvent.change(within(dialog).getByLabelText("本次 plan 意图"), { target: { value: "临时意图" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: "重新 plan" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "生成 plan" })).not.toBeInTheDocument();
     });
     expect(workflowsApi.startPlanTask).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "重新 plan" }));
-    dialog = await screen.findByRole("dialog", { name: "重新 plan" });
-    expect((within(dialog).getByLabelText("本次重新 plan 意图") as HTMLTextAreaElement).value).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "生成 plan" }));
+    dialog = await screen.findByRole("dialog", { name: "生成 plan" });
+    expect((within(dialog).getByLabelText("本次 plan 意图") as HTMLTextAreaElement).value).toBe("");
   });
 
   it("shows approve task status card while running", async () => {
