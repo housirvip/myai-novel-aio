@@ -53,6 +53,15 @@ impl BackendManager {
                 return Ok(bin);
             }
             searched.push(bin.display().to_string());
+
+            #[cfg(target_os = "windows")]
+            {
+                let fallback = dir.join("binaries").join("server");
+                if fallback.exists() {
+                    return Ok(fallback);
+                }
+                searched.push(fallback.display().to_string());
+            }
         }
 
         if let Some(dir) = std::env::current_exe()
@@ -64,6 +73,15 @@ impl BackendManager {
                 return Ok(bin);
             }
             searched.push(bin.display().to_string());
+
+            #[cfg(target_os = "windows")]
+            {
+                let fallback = dir.join("binaries").join("server");
+                if fallback.exists() {
+                    return Ok(fallback);
+                }
+                searched.push(fallback.display().to_string());
+            }
         }
 
         let dev_paths = [
@@ -118,7 +136,22 @@ impl BackendManager {
         self.port = port;
 
         let binary = Self::find_server_binary(app)?;
-        let working_dir = Self::resolve_working_dir(app, &binary)?;
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Ok(meta) = std::fs::metadata(&binary) {
+                let mut perms = meta.permissions();
+                if perms.mode() & 0o100 == 0 {
+                    perms.set_mode(perms.mode() | 0o100);
+                    if let Err(e) = std::fs::set_permissions(&binary, perms) {
+                        let _ = app.emit("backend-log", format!("[WARN] 无法设置二进制执行权限: {}", e));
+                    }
+                }
+            }
+        }
+
+        let working_dir = Self::resolve_working_dir(app, &binary, port)?;
 
         let mut cmd = Command::new(&binary);
         cmd.current_dir(&working_dir);
@@ -228,7 +261,7 @@ impl BackendManager {
         self.start(app, port).await
     }
 
-    fn resolve_working_dir(app: &AppHandle, binary: &PathBuf) -> Result<PathBuf, String> {
+    fn resolve_working_dir(app: &AppHandle, binary: &PathBuf, port: u16) -> Result<PathBuf, String> {
         if let Some(dir) = Self::find_backend_dir(binary) {
             return Ok(dir);
         }
@@ -243,20 +276,67 @@ impl BackendManager {
         let env_path = data_dir.join(".env");
         if !env_path.exists() {
             let secret = Self::generate_secret();
-            let default_env = format!(
-                "DB_CLIENT=sqlite\n\
-                 DB_SQLITE_PATH=./data/novel.db\n\
-                 LOG_DIR=./logs\n\
-                 LOG_LEVEL=info\n\
-                 LLM_PROVIDER=mock\n\
-                 AUTH_SESSION_SECRET={}\n",
-                secret
-            );
-            std::fs::write(&env_path, default_env)
+            let template = Self::load_env_template(app);
+            let env_content = if let Some(content) = template {
+                let content = Self::replace_env_value(&content, "AUTH_SESSION_SECRET", &secret);
+                let content = Self::replace_env_value(&content, "SERVER_PORT", &port.to_string());
+                Self::replace_env_value(&content, "WORKFLOW_MAX_CONCURRENCY", "2")
+            } else {
+                eprintln!("[WARN] 未找到打包的 .env.example 模板，使用最小默认配置");
+                format!(
+                    "DB_CLIENT=sqlite\n\
+                     DB_SQLITE_PATH=./data/novel.db\n\
+                     LOG_DIR=./logs\n\
+                     LOG_LEVEL=info\n\
+                     LLM_PROVIDER=mock\n\
+                     AUTH_SESSION_SECRET={}\n",
+                    secret
+                )
+            };
+            std::fs::write(&env_path, env_content)
                 .map_err(|e| format!("无法写入默认 .env: {}", e))?;
         }
 
         Ok(data_dir)
+    }
+
+    fn load_env_template(app: &AppHandle) -> Option<String> {
+        let resource_dir = app.path().resource_dir().ok()?;
+        let template = resource_dir.join("binaries").join(".env.example");
+        match std::fs::read_to_string(&template) {
+            Ok(content) => Some(content),
+            Err(e) => {
+                eprintln!("[WARN] 读取打包的 .env.example 模板失败 ({}): {}", template.display(), e);
+                None
+            }
+        }
+    }
+
+    pub fn load_bundled_env_example(app: &AppHandle) -> Option<String> {
+        Self::load_env_template(app)
+    }
+
+    pub fn strip_secret_from_template(content: &str) -> String {
+        Self::replace_env_value(content, "AUTH_SESSION_SECRET", "")
+    }
+
+    fn replace_env_value(content: &str, key: &str, value: &str) -> String {
+        let prefix = format!("{}=", key);
+        let mut result: String = content
+            .lines()
+            .map(|line| {
+                if line.starts_with(&prefix) {
+                    format!("{}={}", key, value)
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        if content.ends_with('\n') {
+            result.push('\n');
+        }
+        result
     }
 
     fn generate_secret() -> String {

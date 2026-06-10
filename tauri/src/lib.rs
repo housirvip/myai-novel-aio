@@ -55,17 +55,21 @@ async fn read_env_file(app: tauri::AppHandle) -> Result<String, String> {
     let dir = BackendManager::resolve_backend_dir(&app)?;
     let env_path = dir.join(".env");
     if env_path.exists() {
-        std::fs::read_to_string(&env_path)
-            .map_err(|e| format!("读取 .env 失败: {}", e))
-    } else {
-        let example = dir.join(".env.example");
-        if example.exists() {
-            std::fs::read_to_string(&example)
-                .map_err(|e| format!("读取 .env.example 失败: {}", e))
-        } else {
-            Ok(String::new())
-        }
+        return std::fs::read_to_string(&env_path)
+            .map_err(|e| format!("读取 .env 失败: {}", e));
     }
+
+    let example = dir.join(".env.example");
+    if example.exists() {
+        return std::fs::read_to_string(&example)
+            .map_err(|e| format!("读取 .env.example 失败: {}", e));
+    }
+
+    if let Some(content) = BackendManager::load_bundled_env_example(&app) {
+        return Ok(BackendManager::strip_secret_from_template(&content));
+    }
+
+    Ok(String::new())
 }
 
 #[tauri::command]
