@@ -57,7 +57,7 @@ describe("ResourcesPage", () => {
       expect(screen.getByText("Characters 列表")).toBeInTheDocument();
     });
 
-    const editor = screen.getByRole("heading", { name: "新建 Characters" }).closest("aside");
+    const editor = screen.getByRole("heading", { name: "新建 Characters" }).closest("[data-testid='resource-editor']");
     expect(editor).not.toBeNull();
     const formScope = within(editor as HTMLElement);
     const statusSelect = formScope.getByRole("combobox", { name: "状态" });
@@ -76,7 +76,7 @@ describe("ResourcesPage", () => {
       expect(screen.getByText("Items 列表")).toBeInTheDocument();
     });
 
-    const editor = screen.getByRole("heading", { name: "新建 Items" }).closest("aside");
+    const editor = screen.getByRole("heading", { name: "新建 Items" }).closest("[data-testid='resource-editor']");
     expect(editor).not.toBeNull();
     const formScope = within(editor as HTMLElement);
 
@@ -96,7 +96,7 @@ describe("ResourcesPage", () => {
       expect(screen.getByText("Hooks 列表")).toBeInTheDocument();
     });
 
-    const editor = screen.getByRole("heading", { name: "新建 Hooks" }).closest("aside");
+    const editor = screen.getByRole("heading", { name: "新建 Hooks" }).closest("[data-testid='resource-editor']");
     expect(editor).not.toBeNull();
     const formScope = within(editor as HTMLElement);
     const hookTypeSelect = formScope.getByRole("combobox", { name: "钩子类型" });
@@ -114,7 +114,7 @@ describe("ResourcesPage", () => {
       expect(screen.getByText("Relations 列表")).toBeInTheDocument();
     });
 
-    const editor = screen.getByRole("heading", { name: "新建 Relations" }).closest("aside");
+    const editor = screen.getByRole("heading", { name: "新建 Relations" }).closest("[data-testid='resource-editor']");
     expect(editor).not.toBeNull();
     const formScope = within(editor as HTMLElement);
 
@@ -149,7 +149,7 @@ describe("ResourcesPage", () => {
       expect(screen.getByText("Relations 列表")).toBeInTheDocument();
     });
 
-    const editor = screen.getByRole("heading", { name: "新建 Relations" }).closest("aside");
+    const editor = screen.getByRole("heading", { name: "新建 Relations" }).closest("[data-testid='resource-editor']");
     expect(editor).not.toBeNull();
     const formScope = within(editor as HTMLElement);
 
