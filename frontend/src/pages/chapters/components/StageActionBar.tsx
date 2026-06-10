@@ -14,9 +14,8 @@ export type StageActionBarProps = {
   saveStageMutationPending: boolean;
   editorContentEmpty: boolean;
   isDirty: boolean;
-  onOpenInitialPlanDialog: () => void;
+  onOpenPlanDialog: () => void;
   onStartWorkflow: (request: { action: WorkflowAction }) => void;
-  onRerunPlan: () => void;
   onSaveStage: () => void;
 };
 
@@ -32,9 +31,8 @@ export function StageActionBar({
   saveStageMutationPending,
   editorContentEmpty,
   isDirty,
-  onOpenInitialPlanDialog,
+  onOpenPlanDialog,
   onStartWorkflow,
-  onRerunPlan,
   onSaveStage,
 }: StageActionBarProps) {
   return (
@@ -54,7 +52,7 @@ export function StageActionBar({
       <div className="flex flex-wrap gap-2">
         {activeTab === "plan" && availableActions.includes("plan") && (
           <Button
-            onClick={onOpenInitialPlanDialog}
+            onClick={onOpenPlanDialog}
             disabled={isAnyWorkflowBusy}
             className="bg-foreground text-background hover:bg-foreground/90 hover:shadow-none hover:brightness-100"
           >
@@ -99,16 +97,6 @@ export function StageActionBar({
               : activeWorkflowTaskType === "approve"
                 ? "approve 执行中..."
                 : "批准成稿"}
-          </Button>
-        )}
-        {activeTab === "plan" && (
-          <Button
-            variant="ghost"
-            onClick={onRerunPlan}
-            disabled={isAnyWorkflowBusy}
-            className="border border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          >
-            {workflowMutationPending && workflowMutationAction === "plan" ? "重新 plan 中..." : activeWorkflowTaskType === "plan" ? "plan 执行中..." : "重新 plan"}
           </Button>
         )}
         {stageIsEditable && (

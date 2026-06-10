@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+import { Select } from "@/components/ui/select";
 import { settingsPath } from "@/lib/routes";
 import type { StoredWorkflowSettings, WorkflowProvider } from "../hooks/useWorkflowSettings";
 
@@ -51,7 +52,7 @@ export function WorkflowSettingsDialog({
           <label className="block text-xs text-muted-foreground">
             Provider
           </label>
-          <select
+          <Select
             value={draft.provider}
             onChange={(event) =>
               onDraftChange({
@@ -59,13 +60,12 @@ export function WorkflowSettingsDialog({
                 provider: event.target.value as WorkflowProvider,
               })
             }
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
           >
             <option value="mock">mock</option>
             <option value="openai">openai</option>
             <option value="anthropic">anthropic</option>
             <option value="custom">custom</option>
-          </select>
+          </Select>
 
           <label className="block text-xs text-muted-foreground">
             Low Model

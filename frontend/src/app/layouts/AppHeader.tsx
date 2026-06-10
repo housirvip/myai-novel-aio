@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, LogOut, Menu, Monitor, Moon, Sun } from "lucide-react";
+import { ChevronRight, LogOut, Menu, Moon, Sun } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -47,7 +47,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
   });
 
   const cycleTheme = () => {
-    const next = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
+    const next = theme === "light" ? "dark" : "light";
     setTheme(next);
   };
 
@@ -92,8 +92,6 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
         <Button variant="ghost" size="icon" onClick={cycleTheme} aria-label="切换主题">
           {theme === "dark" ? (
             <Moon className="h-4 w-4" />
-          ) : theme === "system" ? (
-            <Monitor className="h-4 w-4" />
           ) : (
             <Sun className="h-4 w-4" />
           )}

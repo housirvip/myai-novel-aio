@@ -10,7 +10,6 @@ import {
   PenSquare,
   Server,
   Settings,
-  Sparkles,
 } from "lucide-react";
 import { NavLink, useLocation, useParams } from "react-router-dom";
 
@@ -94,9 +93,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     >
       {/* Logo */}
       <div className={cn("flex items-center gap-2 px-3 py-3", collapsed && "justify-center")}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-brand shadow-glow-sm text-primary-foreground">
-          <Sparkles className="h-4 w-4" />
-        </div>
+        <img src="/app-icon.png" alt="AI 小说工作台" className="h-8 w-8 shrink-0 rounded-lg" />
         {!collapsed && (
           <span className="text-sm font-semibold text-sidebar-foreground">AI 小说工作台</span>
         )}

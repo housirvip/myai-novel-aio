@@ -40,7 +40,7 @@ function getWorkflowTaskStageLabel(stage: string | null) {
 }
 
 export type PlanIntentDialogProps = {
-  mode: "initial" | "replan" | null;
+  mode: "initial" | null;
   intentDraft: string;
   onIntentDraftChange: (value: string) => void;
   manualEntityRefs: ManualEntityRefs;
@@ -87,12 +87,10 @@ export function PlanIntentDialog({
           id="plan-intent-dialog-title"
           className="text-lg font-semibold text-foreground"
         >
-          {mode === "initial" ? "生成 plan" : "重新 plan"}
+          生成 plan
         </h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          {mode === "initial"
-            ? "会基于当前 workflow 参数生成新的 plan，并带上当前 manualEntityRefs 勾选结果。你可以补充本次意图，也可以留空后直接确定。"
-            : "会基于当前 workflow 参数重新生成新的 plan 版本，并带上当前 manualEntityRefs 勾选结果。你可以补充本次意图，也可以留空后直接确定。"}
+          会基于当前 workflow 参数生成新的 plan，并带上当前 manualEntityRefs 勾选结果。你可以补充本次意图，也可以留空后直接确定。
         </p>
         <div className="mt-4 rounded-lg bg-muted p-4 text-sm text-foreground">
           <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -120,11 +118,7 @@ export function PlanIntentDialog({
           </div>
         </div>
         <label className="mt-4 block space-y-2 text-sm text-foreground">
-          <span>
-            {mode === "initial"
-              ? "本次 plan 意图"
-              : "本次重新 plan 意图"}
-          </span>
+          <span>本次 plan 意图</span>
           <textarea
             value={intentDraft}
             onChange={(event) => onIntentDraftChange(event.target.value)}

@@ -141,7 +141,7 @@ select:focus-visible,
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(330 70% 65%));
   }
 }
 

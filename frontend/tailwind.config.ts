@@ -75,7 +75,7 @@ const config: Config = {
       },
       backgroundImage: {
         "gradient-brand":
-          "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.7) 50%, hsl(var(--accent) / 0.8) 100%)",
+          "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.85) 60%, hsl(var(--primary) / 0.7) 100%)",
         "gradient-header":
           "linear-gradient(135deg, hsl(var(--primary) / 0.9), hsl(var(--primary) / 0.6))",
         "gradient-subtle":
