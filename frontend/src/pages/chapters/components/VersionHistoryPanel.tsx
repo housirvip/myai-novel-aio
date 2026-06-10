@@ -1,3 +1,7 @@
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChapterStage, ChapterStageHistoryEntry } from "@/lib/types";
 
@@ -53,18 +57,18 @@ export function VersionHistoryPanel({
               <label className="text-xs text-muted-foreground" htmlFor="history-limit-select">
                 history limit
               </label>
-              <select
-                id="history-limit-select"
-                value={historyLimit}
-                onChange={(event) => onHistoryLimitChange(Number(event.target.value))}
-                className="rounded-full border border-border bg-card px-3 py-1 text-xs text-foreground"
-              >
-                {historyLimitOptions.map((limit) => (
-                  <option key={limit} value={limit}>
-                    {limit}
-                  </option>
-                ))}
-              </select>
+              <Select value={String(historyLimit)} onValueChange={(value) => onHistoryLimitChange(Number(value))}>
+                <SelectTrigger id="history-limit-select" aria-label="history limit" className="h-8 w-24 rounded-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {historyLimitOptions.map((limit) => (
+                    <SelectItem key={limit} value={String(limit)}>
+                      {limit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="mt-4 space-y-3">
@@ -89,28 +93,33 @@ export function VersionHistoryPanel({
                     isSelected ? "border-primary bg-card shadow-sm" : "border-transparent bg-card text-muted-foreground"
                   }`}
                 >
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => onSelectHistory(entry.id)}
-                    className="block flex-1 text-left text-sm"
+                    className="h-auto flex-1 justify-start p-0 text-left text-sm hover:bg-transparent"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="font-medium text-foreground">
-                        v{entry.versionNo} {entry.isCurrent ? "· current" : ""}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{new Date(entry.updatedAt).toLocaleString("zh-CN")}</div>
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground">字数：{entry.wordCount ?? "—"}</div>
-                    {entry.summary && <div className="mt-2 line-clamp-3 text-xs text-muted-foreground">{entry.summary}</div>}
-                  </button>
+                    <span className="block w-full">
+                      <span className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium text-foreground">
+                          v{entry.versionNo} {entry.isCurrent ? "· current" : ""}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{new Date(entry.updatedAt).toLocaleString("zh-CN")}</span>
+                      </span>
+                      <span className="mt-2 block text-xs text-muted-foreground">字数：{entry.wordCount ?? "—"}</span>
+                      {entry.summary && <span className="mt-2 block line-clamp-3 text-xs text-muted-foreground">{entry.summary}</span>}
+                    </span>
+                  </Button>
                   <label className={`mt-1 flex shrink-0 items-center gap-2 text-xs ${comparisonDisabled ? "text-muted-foreground/40" : "text-muted-foreground"}`}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       aria-label={`对比 v${entry.versionNo}`}
                       checked={isCompared}
                       disabled={comparisonDisabled}
-                      onChange={() => onToggleComparison(entry.id)}
-                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary disabled:cursor-not-allowed"
+                      onCheckedChange={(checked) => {
+                        if (checked === true || isCompared) {
+                          onToggleComparison(entry.id);
+                        }
+                      }}
                     />
                     <span>对比</span>
                   </label>
@@ -135,21 +144,13 @@ export function VersionHistoryPanel({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {comparisonEntries.length === 2 && (
-                    <button
-                      type="button"
-                      onClick={onOpenDiffDialog}
-                      className="rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground"
-                    >
+                    <Button type="button" size="sm" onClick={onOpenDiffDialog}>
                       查看差异
-                    </button>
+                    </Button>
                   )}
-                  <button
-                    type="button"
-                    onClick={onClearComparison}
-                    className="rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground"
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={onClearComparison}>
                     清空比较
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -178,13 +179,9 @@ export function VersionHistoryPanel({
                 <div className="rounded-lg bg-card p-4 ring-1 ring-border text-xs text-muted-foreground">
                   <div className="flex items-center justify-between gap-3">
                     <div className="font-medium text-foreground">full content</div>
-                    <button
-                      type="button"
-                      onClick={onToggleContentExpanded}
-                      className="rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-medium text-muted-foreground transition hover:border-border hover:bg-muted/80"
-                    >
+                    <Button type="button" variant="outline" size="sm" onClick={onToggleContentExpanded}>
                       {historyContentExpanded ? "收起正文" : "展开正文"}
-                    </button>
+                    </Button>
                   </div>
                   {historyContentExpanded && (
                     <div className="mt-2 max-h-52 overflow-y-auto whitespace-pre-wrap leading-6">{selectedHistory.content || "—"}</div>

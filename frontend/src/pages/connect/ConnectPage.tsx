@@ -1,4 +1,9 @@
 import { useEffect, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 import { isTauri } from "@/lib/tauri";
 
@@ -135,20 +140,18 @@ export function ConnectPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground">连接后端服务</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            配置 Go 后端地址以使用 API 服务
-          </p>
-        </div>
+        <Card className="text-center shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl">连接后端服务</CardTitle>
+            <CardDescription>配置 Go 后端地址以使用 API 服务</CardDescription>
+          </CardHeader>
+        </Card>
 
-        <div className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
-          <div>
-            <label htmlFor="backend-url" className="block text-sm font-medium text-foreground">
-              后端地址
-            </label>
-            <div className="mt-1 flex gap-2">
-              <input
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+          <Field label="后端地址" htmlFor="backend-url">
+            <div className="flex gap-2">
+              <Input
                 id="backend-url"
                 type="text"
                 value={url}
@@ -156,17 +159,12 @@ export function ConnectPage() {
                 onKeyDown={(e) => e.key === "Enter" && handleConnect()}
                 placeholder="http://127.0.0.1:3030"
                 disabled={loading}
-                className="block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm outline-none transition focus:border-primary disabled:opacity-50"
               />
-              <button
-                onClick={handleConnect}
-                disabled={loading}
-                className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-              >
+              <Button onClick={handleConnect} disabled={loading} className="shrink-0">
                 连接
-              </button>
+              </Button>
             </div>
-          </div>
+          </Field>
 
           {isTauri && (
             <>
@@ -181,53 +179,45 @@ export function ConnectPage() {
 
               {backend.running ? (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">
-                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                    内嵌后端运行中{backend.pid ? ` (PID: ${backend.pid})` : ""}
-                  </div>
-                  <button
-                    onClick={handleStopEmbedded}
-                    className="w-full rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground"
-                  >
+                  <Alert variant="success">
+                    <AlertDescription>
+                      内嵌后端运行中{backend.pid ? ` (PID: ${backend.pid})` : ""}
+                    </AlertDescription>
+                  </Alert>
+                  <Button onClick={handleStopEmbedded} variant="destructive" className="w-full">
                     停止后端
-                  </button>
+                  </Button>
                 </div>
               ) : (
-                <button
+                <Button
                   onClick={handleStartEmbedded}
                   disabled={loading}
-                  className="w-full rounded-lg border border-primary/30 bg-card px-4 py-2 text-sm font-medium text-primary disabled:opacity-50"
+                  variant="outline"
+                  className="w-full text-primary"
                 >
                   启动内嵌后端
-                </button>
+                </Button>
               )}
             </>
           )}
 
           {status.type !== "idle" && (
-            <div
-              className={`rounded-lg px-3 py-2 text-sm ${
-                status.type === "info"
-                  ? "bg-primary/10 text-primary"
-                  : status.type === "success"
-                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                    : "bg-destructive/10 text-destructive"
-              }`}
-            >
-              {status.text}
-            </div>
+            <Alert variant={status.type === "success" ? "success" : status.type === "error" ? "destructive" : "default"}>
+              <AlertDescription>{status.text}</AlertDescription>
+            </Alert>
           )}
-        </div>
+          </CardContent>
+        </Card>
 
         <div className="flex items-center justify-between text-sm">
           {isTauri && (
-            <button onClick={handleOpenConsole} className="text-muted-foreground underline hover:text-primary">
+            <Button type="button" variant="link" onClick={handleOpenConsole} className="h-auto p-0 text-muted-foreground">
               打开控制台
-            </button>
+            </Button>
           )}
-          <button onClick={handleSkip} className="ml-auto text-muted-foreground/60 hover:text-muted-foreground">
+          <Button type="button" variant="ghost" onClick={handleSkip} className="ml-auto text-muted-foreground/60 hover:text-muted-foreground">
             跳过（使用同源模式）
-          </button>
+          </Button>
         </div>
       </div>
     </div>

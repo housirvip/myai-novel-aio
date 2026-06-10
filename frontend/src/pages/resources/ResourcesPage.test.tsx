@@ -14,6 +14,21 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+
+async function chooseSelect(scope: HTMLElement, label: string, optionName: string) {
+  const trigger = within(scope).getByRole("combobox", { name: label });
+  fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse", pointerId: 1 });
+  fireEvent.click(await screen.findByRole("option", { name: optionName }));
+}
+
+async function expectSelectOptions(scope: HTMLElement, label: string, optionNames: string[]) {
+  const trigger = within(scope).getByRole("combobox", { name: label });
+  fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse", pointerId: 1 });
+  for (const optionName of optionNames) {
+    expect(await screen.findByRole("option", { name: optionName })).toBeInTheDocument();
+  }
+  fireEvent.keyDown(trigger, { key: "Escape" });
+}
 describe("ResourcesPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -51,78 +66,68 @@ describe("ResourcesPage", () => {
   it("uses enum select for character status in resource editor", async () => {
     renderWithRoute(<ResourcesPage />, "/app/books/1/resources", "/app/books/:bookId/resources");
 
-    fireEvent.click(screen.getByRole("button", { name: /Characters/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Characters/ }));
 
     await waitFor(() => {
       expect(screen.getByText("Characters 列表")).toBeInTheDocument();
     });
 
-    const editor = screen.getByRole("heading", { name: "新建 Characters" }).closest("aside");
+    const editor = screen.getByRole("heading", { name: "新建 Characters" }).closest("div.rounded-xl");
     expect(editor).not.toBeNull();
     const formScope = within(editor as HTMLElement);
     const statusSelect = formScope.getByRole("combobox", { name: "状态" });
 
-    expect(statusSelect).toHaveValue("alive");
-    expect(within(statusSelect).getByRole("option", { name: "存活" })).toBeInTheDocument();
-    expect(within(statusSelect).getByRole("option", { name: "死亡" })).toBeInTheDocument();
+    expect(statusSelect).toHaveTextContent("存活");
+    await expectSelectOptions(editor as HTMLElement, "状态", ["存活", "死亡"]);
   });
 
   it("uses enum selects for item rarity and category in resource editor", async () => {
     renderWithRoute(<ResourcesPage />, "/app/books/1/resources", "/app/books/:bookId/resources");
 
-    fireEvent.click(screen.getByRole("button", { name: /Items/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Items/ }));
 
     await waitFor(() => {
       expect(screen.getByText("Items 列表")).toBeInTheDocument();
     });
 
-    const editor = screen.getByRole("heading", { name: "新建 Items" }).closest("aside");
+    const editor = screen.getByRole("heading", { name: "新建 Items" }).closest("div.rounded-xl");
     expect(editor).not.toBeNull();
-    const formScope = within(editor as HTMLElement);
 
-    const categorySelect = formScope.getByRole("combobox", { name: "分类" });
-    const raritySelect = formScope.getByRole("combobox", { name: "稀有度" });
-
-    expect(within(categorySelect).getByRole("option", { name: "令牌" })).toBeInTheDocument();
-    expect(within(raritySelect).getByRole("option", { name: "传说" })).toBeInTheDocument();
+    await expectSelectOptions(editor as HTMLElement, "分类", ["令牌"]);
+    await expectSelectOptions(editor as HTMLElement, "稀有度", ["传说"]);
   });
 
   it("uses enum select for hook type in resource editor", async () => {
     renderWithRoute(<ResourcesPage />, "/app/books/1/resources", "/app/books/:bookId/resources");
 
-    fireEvent.click(screen.getByRole("button", { name: /Hooks/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Hooks/ }));
 
     await waitFor(() => {
       expect(screen.getByText("Hooks 列表")).toBeInTheDocument();
     });
 
-    const editor = screen.getByRole("heading", { name: "新建 Hooks" }).closest("aside");
+    const editor = screen.getByRole("heading", { name: "新建 Hooks" }).closest("div.rounded-xl");
     expect(editor).not.toBeNull();
-    const formScope = within(editor as HTMLElement);
-    const hookTypeSelect = formScope.getByRole("combobox", { name: "钩子类型" });
-
-    expect(within(hookTypeSelect).getByRole("option", { name: "伏笔" })).toBeInTheDocument();
-    expect(within(hookTypeSelect).getByRole("option", { name: "回收" })).toBeInTheDocument();
+    await expectSelectOptions(editor as HTMLElement, "钩子类型", ["伏笔", "回收"]);
   });
 
   it("creates a relation with entity pickers", async () => {
     renderWithRoute(<ResourcesPage />, "/app/books/1/resources", "/app/books/:bookId/resources");
 
-    fireEvent.click(screen.getByRole("button", { name: /Relations/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Relations/ }));
 
     await waitFor(() => {
       expect(screen.getByText("Relations 列表")).toBeInTheDocument();
     });
 
-    const editor = screen.getByRole("heading", { name: "新建 Relations" }).closest("aside");
+    const editor = screen.getByRole("heading", { name: "新建 Relations" }).closest("div.rounded-xl");
     expect(editor).not.toBeNull();
-    const formScope = within(editor as HTMLElement);
 
-    fireEvent.change(formScope.getByRole("combobox", { name: "起点类型" }), { target: { value: "character" } });
-    fireEvent.change(formScope.getByRole("combobox", { name: "终点类型" }), { target: { value: "faction" } });
-    fireEvent.change(formScope.getByRole("combobox", { name: "起点实体" }), { target: { value: "11" } });
-    fireEvent.change(formScope.getByRole("combobox", { name: "终点实体" }), { target: { value: "21" } });
-    fireEvent.change(formScope.getByRole("combobox", { name: "关系类型" }), { target: { value: "mentor" } });
+    await chooseSelect(editor as HTMLElement, "起点类型", "角色");
+    await chooseSelect(editor as HTMLElement, "终点类型", "势力");
+    await chooseSelect(editor as HTMLElement, "起点实体", "林夜");
+    await chooseSelect(editor as HTMLElement, "终点实体", "青岳宗");
+    await chooseSelect(editor as HTMLElement, "关系类型", "导师");
 
     fireEvent.click(screen.getByRole("button", { name: "创建资源" }));
 
@@ -143,17 +148,16 @@ describe("ResourcesPage", () => {
   it("blocks relation creation until both endpoints are selected", async () => {
     renderWithRoute(<ResourcesPage />, "/app/books/1/resources", "/app/books/:bookId/resources");
 
-    fireEvent.click(screen.getByRole("button", { name: /Relations/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Relations/ }));
 
     await waitFor(() => {
       expect(screen.getByText("Relations 列表")).toBeInTheDocument();
     });
 
-    const editor = screen.getByRole("heading", { name: "新建 Relations" }).closest("aside");
+    const editor = screen.getByRole("heading", { name: "新建 Relations" }).closest("div.rounded-xl");
     expect(editor).not.toBeNull();
-    const formScope = within(editor as HTMLElement);
 
-    fireEvent.change(formScope.getByRole("combobox", { name: "关系类型" }), { target: { value: "mentor" } });
+    await chooseSelect(editor as HTMLElement, "关系类型", "导师");
 
     expect(screen.getByRole("button", { name: "创建资源" })).toBeDisabled();
     expect(screen.getByText("请先选择起点实体。")).toBeInTheDocument();
@@ -176,7 +180,7 @@ describe("ResourcesPage", () => {
 
     renderWithRoute(<ResourcesPage />, "/app/books/1/resources", "/app/books/:bookId/resources");
 
-    fireEvent.click(screen.getByRole("button", { name: /Items/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Items/ }));
 
     await waitFor(() => {
       expect(screen.getByText("角色：林夜 · 启用")).toBeInTheDocument();
@@ -201,7 +205,7 @@ describe("ResourcesPage", () => {
 
     renderWithRoute(<ResourcesPage />, "/app/books/1/resources", "/app/books/:bookId/resources");
 
-    fireEvent.click(screen.getByRole("button", { name: /Relations/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Relations/ }));
 
     await waitFor(() => {
       expect(screen.getByText("领导 · 启用")).toBeInTheDocument();
@@ -215,7 +219,7 @@ describe("ResourcesPage", () => {
 
     renderWithRoute(<ResourcesPage />, "/app/books/1/resources", "/app/books/:bookId/resources");
 
-    fireEvent.click(screen.getByRole("button", { name: /Characters/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Characters/ }));
 
     await waitFor(() => {
       expect(screen.getByText("存活 · 云岚城")).toBeInTheDocument();
@@ -225,7 +229,7 @@ describe("ResourcesPage", () => {
   it("shows relation entity names on relation cards", async () => {
     renderWithRoute(<ResourcesPage />, "/app/books/1/resources", "/app/books/:bookId/resources");
 
-    fireEvent.click(screen.getByRole("button", { name: /Relations/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Relations/ }));
 
     await waitFor(() => {
       expect(screen.getByText("Relations 列表")).toBeInTheDocument();

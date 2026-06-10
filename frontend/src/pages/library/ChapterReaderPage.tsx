@@ -4,6 +4,8 @@ import { Link, useParams } from "react-router-dom";
 
 import { useTheme } from "@/components/theme-provider";
 
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatApiErrorMessage } from "@/lib/api";
 import { getBook } from "@/lib/books-api";
@@ -97,7 +99,7 @@ export function ChapterReaderPage() {
 
   return (
     <section className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-      <aside className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <Card className="p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-foreground">章节目录</h2>
@@ -128,14 +130,12 @@ export function ChapterReaderPage() {
           {chapters.map((chapter) => {
             const selected = chapter.chapterNo === selectedChapterNo;
             return (
-              <button
+              <Button
                 key={chapter.id}
+                type="button"
                 onClick={() => setSelectedChapterNo(chapter.chapterNo)}
-                className={`w-full rounded-lg border px-4 py-3 text-left transition ${
-                  selected
-                    ? "border-primary bg-primary text-primary-foreground shadow-glow"
-                    : "border-border bg-muted text-muted-foreground hover:bg-secondary"
-                }`}
+                variant={selected ? "default" : "secondary"}
+                className="h-auto w-full justify-start px-4 py-3 text-left"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-medium">第 {chapter.chapterNo} 章</span>
@@ -160,30 +160,30 @@ export function ChapterReaderPage() {
                 <div className={`mt-2 text-[11px] ${selected ? "text-primary-foreground/75" : "text-muted-foreground/60"}`}>
                   状态：{chapter.status}
                 </div>
-              </button>
+              </Button>
             );
           })}
         </div>
-      </aside>
+      </Card>
 
-      <article className={`rounded-xl border p-6 shadow-sm transition lg:p-8 ${isDark ? "border-slate-800 bg-slate-950 text-slate-100" : "border-border bg-card text-foreground"}`}>
+      <Card className="p-6 transition lg:p-8">
         <div className={`mx-auto ${wideMode ? "max-w-5xl" : "max-w-3xl"}`}>
-          <div className={`sticky top-4 z-10 rounded-xl border px-5 py-4 backdrop-blur ${isDark ? "border-slate-800 bg-slate-950/90" : "border-border bg-card/90"}`}>
+          <div className="sticky top-4 z-10 rounded-xl border border-border bg-card/90 px-5 py-4 backdrop-blur">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className={`text-sm font-medium ${isDark ? "text-violet-300" : "text-primary"}`}>成稿阅读页</p>
-                <h1 className={`mt-2 font-serif text-3xl font-semibold lg:text-4xl ${isDark ? "text-white" : "text-foreground"}`}>
+                <p className="text-sm font-medium text-primary">成稿阅读页</p>
+                <h1 className="mt-2 font-serif text-3xl font-semibold text-foreground lg:text-4xl">
                   {activeChapter?.title || bookQuery.data?.title || "章节成稿阅读"}
                 </h1>
-                <p className={`mt-2 text-sm ${isDark ? "text-slate-400" : "text-muted-foreground"}`}>
+                <p className="mt-2 text-sm text-muted-foreground">
                   {bookQuery.data?.title ? `${bookQuery.data.title} · ` : ""}第 {selectedChapterNo ?? "—"} 章
                 </p>
                 {activeChapter && (
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                    <span className={`rounded-full px-3 py-1 ${isDark ? "bg-slate-900 text-slate-300" : "bg-muted text-muted-foreground"}`}>
+                    <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
                       {activeChapter.currentFinalId ? "可阅读 Final" : "暂无 Final"}
                     </span>
-                    <span className={`rounded-full px-3 py-1 ${isDark ? "bg-slate-900 text-slate-300" : "bg-muted text-muted-foreground"}`}>
+                    <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
                       状态：{activeChapter.status}
                     </span>
                   </div>
@@ -191,57 +191,56 @@ export function ChapterReaderPage() {
               </div>
 
               <div className="flex flex-wrap gap-2 text-xs">
-                <button
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full"
                   onClick={() => previousChapter && setSelectedChapterNo(previousChapter.chapterNo)}
                   disabled={!previousChapter}
-                  className={`rounded-full px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50 ${isDark ? "bg-slate-800 text-slate-300" : "bg-secondary text-secondary-foreground"}`}
                 >
                   上一章
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full"
                   onClick={() => nextChapter && setSelectedChapterNo(nextChapter.chapterNo)}
                   disabled={!nextChapter}
-                  className={`rounded-full px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50 ${isDark ? "bg-slate-800 text-slate-300" : "bg-secondary text-secondary-foreground"}`}
                 >
                   下一章
-                </button>
-                <button
-                  onClick={() => setFontScale((value) => Math.max(16, value - 2))}
-                  className={`rounded-full px-3 py-2 ${isDark ? "bg-slate-800 text-slate-300" : "bg-secondary text-secondary-foreground"}`}
-                >
+                </Button>
+                <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => setFontScale((value) => Math.max(16, value - 2))}>
                   A-
-                </button>
-                <button
-                  onClick={() => setFontScale((value) => Math.min(28, value + 2))}
-                  className={`rounded-full px-3 py-2 ${isDark ? "bg-slate-800 text-slate-300" : "bg-secondary text-secondary-foreground"}`}
-                >
+                </Button>
+                <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => setFontScale((value) => Math.min(28, value + 2))}>
                   A+
-                </button>
-                <button onClick={() => setWideMode((value) => !value)} className={`rounded-full px-3 py-2 ${isDark ? "bg-slate-800 text-slate-300" : "bg-secondary text-secondary-foreground"}`}>
+                </Button>
+                <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => setWideMode((value) => !value)}>
                   {wideMode ? "常规宽度" : "加宽版心"}
-                </button>
-                <button onClick={() => setTheme(isDark ? "light" : "dark")} className={`rounded-full px-3 py-2 ${isDark ? "bg-slate-800 text-slate-300" : "bg-secondary text-secondary-foreground"}`}>
+                </Button>
+                <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={() => setTheme(isDark ? "light" : "dark")}>
                   {isDark ? "亮色" : "暗色"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
 
-          <div className={`mt-6 rounded-xl px-2 ${isDark ? "text-slate-200" : "text-muted-foreground"}`} style={{ fontSize: `${fontScale}px`, lineHeight: 1.95 }}>
+          <div className="mt-6 rounded-xl px-2 text-muted-foreground" style={{ fontSize: `${fontScale}px`, lineHeight: 1.95 }}>
             {chaptersQuery.isLoading && <p>正在载入阅读数据...</p>}
             {!chaptersQuery.isLoading && activeChapter && !activeChapter.currentFinalId && (
-              <div className={`rounded-xl border px-5 py-6 text-sm ${isDark ? "border-slate-800 bg-slate-900 text-slate-300" : "border-border bg-muted text-muted-foreground"}`}>
+              <div className="rounded-xl border border-border bg-muted px-5 py-6 text-sm text-muted-foreground">
                 <div className="font-medium">这一章还没有 final 成稿。</div>
                 <div className="mt-2 leading-7">
                   阅读页保持只读 final 的边界，不会自动回退到 draft。你可以先去章节工作台完成 approve，再回来继续阅读。
                 </div>
                 {selectedChapterNo !== null && (
-                  <Link
-                    to={chapterWorkbenchPath(bookId, selectedChapterNo)}
-                    className={`mt-4 inline-flex rounded-full px-4 py-2 text-xs font-medium ${isDark ? "bg-violet-500/20 text-violet-200" : "bg-primary/10 text-primary"}`}
-                  >
-                    打开该章节工作台
-                  </Link>
+                  <Button asChild variant="secondary" size="sm" className="mt-4 rounded-full">
+                    <Link to={chapterWorkbenchPath(bookId, selectedChapterNo)}>
+                      打开该章节工作台
+                    </Link>
+                  </Button>
                 )}
               </div>
             )}
@@ -255,14 +254,14 @@ export function ChapterReaderPage() {
               </div>
             )}
             {finalQuery.isError && (
-              <div className={`rounded-xl border px-5 py-6 text-sm ${isDark ? "border-rose-900 bg-rose-950/50 text-rose-200" : "border-destructive/20 bg-destructive/10 text-destructive"}`}>
+              <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-5 py-6 text-sm text-destructive">
                 {formatApiErrorMessage(finalQuery.error, "成稿加载失败")}
               </div>
             )}
             {finalQuery.data && (
               <div className="space-y-6">
                 {finalQuery.data.summary && (
-                  <div className={`rounded-xl border px-5 py-4 text-sm ${isDark ? "border-slate-800 bg-slate-900 text-slate-300" : "border-border bg-muted text-muted-foreground"}`}>
+                  <div className="rounded-xl border border-border bg-muted px-5 py-4 text-sm text-muted-foreground">
                     <div className="font-medium">章节摘要</div>
                     <div className="mt-2 whitespace-pre-wrap leading-7">{finalQuery.data.summary}</div>
                   </div>
@@ -271,13 +270,13 @@ export function ChapterReaderPage() {
               </div>
             )}
             {!activeChapter && !chaptersQuery.isLoading && (
-              <div className={`rounded-xl border px-5 py-6 text-sm ${isDark ? "border-slate-800 bg-slate-900 text-slate-300" : "border-border bg-muted text-muted-foreground"}`}>
+              <div className="rounded-xl border border-border bg-muted px-5 py-6 text-sm text-muted-foreground">
                 当前书籍还没有章节。
               </div>
             )}
           </div>
         </div>
-      </article>
+      </Card>
     </section>
   );
 }

@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 import type { WorkflowStatusCardViewModel } from "./workbench-utils";
 
@@ -6,12 +9,17 @@ export type WorkflowStatusCardProps = {
   card: WorkflowStatusCardViewModel;
 };
 
-const toneStyles: Record<WorkflowStatusCardViewModel["tone"], string> = {
-  error: "border-destructive/20 bg-destructive/10 text-destructive",
-  success: "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400",
-  running: "border-primary/20 bg-primary/10 text-primary",
-  idle: "border-border bg-muted text-muted-foreground",
-};
+function getAlertVariant(tone: WorkflowStatusCardViewModel["tone"]) {
+  if (tone === "error") return "destructive";
+  if (tone === "success") return "success";
+  return "default";
+}
+
+function getBadgeVariant(tone: WorkflowStatusCardViewModel["tone"]) {
+  if (tone === "error") return "destructive";
+  if (tone === "success") return "success";
+  return "secondary";
+}
 
 export function WorkflowStatusCard({ card }: WorkflowStatusCardProps) {
   const [visible, setVisible] = useState(true);
@@ -27,20 +35,17 @@ export function WorkflowStatusCard({ card }: WorkflowStatusCardProps) {
   }, [card.tone, card.title]);
 
   return (
-    <div
-      className={`rounded-xl border p-5 shadow-sm transition-opacity duration-500 ${toneStyles[card.tone]} ${visible ? "opacity-100" : "opacity-0"}`}
+    <Alert
+      variant={getAlertVariant(card.tone)}
+      className={`transition-opacity duration-500 ${card.tone === "running" ? "border-primary/20 bg-primary/10 text-primary" : ""} ${visible ? "opacity-100" : "opacity-0"}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs font-medium uppercase tracking-wide opacity-80">{card.eyebrow}</div>
-          <div className="mt-1 text-lg font-semibold">{card.title}</div>
-          <div className="mt-1 text-sm opacity-90">{card.detail}</div>
+          <AlertTitle className="mt-1 text-lg">{card.title}</AlertTitle>
+          <AlertDescription className="mt-1 opacity-90">{card.detail}</AlertDescription>
         </div>
-        {card.badge && (
-          <span className="rounded-full bg-background/80 px-3 py-1 text-xs font-medium ring-1 ring-current/10">
-            {card.badge}
-          </span>
-        )}
+        {card.badge && <Badge variant={getBadgeVariant(card.tone)}>{card.badge}</Badge>}
       </div>
       {card.progressPercent != null && (
         <div className="mt-4">
@@ -48,23 +53,18 @@ export function WorkflowStatusCard({ card }: WorkflowStatusCardProps) {
             <span>任务进度</span>
             <span>{card.progressPercent}%</span>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-background/70">
-            <div
-              className="h-full rounded-full bg-current transition-all"
-              style={{ width: `${Math.max(0, Math.min(100, card.progressPercent))}%` }}
-            />
-          </div>
+          <Progress className="mt-2" value={card.progressPercent} />
         </div>
       )}
       {card.meta.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2 text-xs opacity-90">
           {card.meta.map((item) => (
-            <span key={item} className="rounded-full bg-background/80 px-3 py-1 ring-1 ring-current/10">
+            <Badge key={item} variant="secondary">
               {item}
-            </span>
+            </Badge>
           ))}
         </div>
       )}
-    </div>
+    </Alert>
   );
 }

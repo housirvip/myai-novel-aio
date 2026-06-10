@@ -21,6 +21,25 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+function openSelect(trigger: HTMLElement) {
+  fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse", pointerId: 1 });
+}
+
+async function chooseSelect(scope: HTMLElement, label: string, optionName: string) {
+  const trigger = within(scope).getByRole("combobox", { name: label });
+  openSelect(trigger);
+  fireEvent.click(await screen.findByRole("option", { name: optionName }));
+}
+
+async function expectSelectOptions(scope: HTMLElement, label: string, optionNames: string[]) {
+  const trigger = within(scope).getByRole("combobox", { name: label });
+  openSelect(trigger);
+  for (const optionName of optionNames) {
+    expect(await screen.findByRole("option", { name: optionName })).toBeInTheDocument();
+  }
+  fireEvent.keyDown(trigger, { key: "Escape" });
+}
+
 describe("ChapterWorkbenchPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -259,7 +278,7 @@ describe("ChapterWorkbenchPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "修改" }));
     let dialog = await screen.findByRole("dialog", { name: "修改 workflow 参数" });
-    fireEvent.change(within(dialog).getByRole("combobox"), { target: { value: "anthropic" } });
+    await chooseSelect(dialog, "Provider", "anthropic");
     fireEvent.change(within(dialog).getByPlaceholderText("可选 high 模型名"), { target: { value: "claude-opus-4-7" } });
     fireEvent.change(within(dialog).getByDisplayValue("3000"), { target: { value: "4500" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "保存参数" }));
@@ -431,7 +450,7 @@ describe("ChapterWorkbenchPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "修改" }));
     const dialog = await screen.findByRole("dialog", { name: "修改 workflow 参数" });
-    expect(within(dialog).getByDisplayValue("anthropic")).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: "Provider" })).toHaveTextContent("anthropic");
     expect(within(dialog).getByDisplayValue("claude-opus-4-7")).toBeInTheDocument();
   });
 
@@ -835,16 +854,10 @@ describe("ChapterWorkbenchPage", () => {
     const editorDialog = await screen.findByRole("dialog", { name: "修改实体" });
     const relationTypeSelect = within(editorDialog).getByRole("combobox", { name: "关系类型" });
     const relationStatusSelect = within(editorDialog).getByRole("combobox", { name: "状态" });
-    expect(relationTypeSelect).toHaveValue("member");
-    expect(relationStatusSelect).toHaveValue("active");
-    expect(within(relationTypeSelect).getByRole("option", { name: "导师" })).toBeInTheDocument();
-    expect(within(relationTypeSelect).getByRole("option", { name: "普通朋友" })).toBeInTheDocument();
-    expect(within(relationTypeSelect).getByRole("option", { name: "挚友" })).toBeInTheDocument();
-    expect(within(relationTypeSelect).getByRole("option", { name: "生死之交" })).toBeInTheDocument();
-    expect(within(relationTypeSelect).getByRole("option", { name: "情侣" })).toBeInTheDocument();
-    expect(within(relationTypeSelect).getByRole("option", { name: "夫妻" })).toBeInTheDocument();
-    expect(within(relationStatusSelect).getByRole("option", { name: "启用" })).toBeInTheDocument();
-    expect(within(relationStatusSelect).getByRole("option", { name: "断裂" })).toBeInTheDocument();
+    expect(relationTypeSelect).toHaveTextContent("成员");
+    expect(relationStatusSelect).toHaveTextContent("启用");
+    await expectSelectOptions(editorDialog, "关系类型", ["导师", "普通朋友", "挚友", "生死之交", "情侣", "夫妻"]);
+    await expectSelectOptions(editorDialog, "状态", ["启用", "断裂"]);
   });
 
 
@@ -931,16 +944,14 @@ describe("ChapterWorkbenchPage", () => {
     fireEvent.click(within(selectorDialog).getByRole("button", { name: /修改character:11/ }));
 
     const editorDialog = await screen.findByRole("dialog", { name: "修改实体" });
-    const sourceTypeSelect = within(editorDialog).getByRole("combobox", { name: "起点类型" });
-    const targetTypeSelect = within(editorDialog).getByRole("combobox", { name: "终点类型" });
-    expect(within(sourceTypeSelect).getByRole("option", { name: "角色" })).toBeInTheDocument();
-    expect(within(targetTypeSelect).getByRole("option", { name: "势力" })).toBeInTheDocument();
+    await expectSelectOptions(editorDialog, "起点类型", ["角色"]);
+    await expectSelectOptions(editorDialog, "终点类型", ["势力"]);
 
-    fireEvent.change(sourceTypeSelect, { target: { value: "item" } });
+    await chooseSelect(editorDialog, "起点类型", "物品");
 
-    const sourceSelect = within(editorDialog).getByRole("combobox", { name: "起点实体" }) as HTMLSelectElement;
-    expect(sourceSelect.value).toBe("");
-    expect(within(editorDialog).getByRole("option", { name: "黑铁令" })).toBeInTheDocument();
+    const sourceSelect = within(editorDialog).getByRole("combobox", { name: "起点实体" });
+    expect(sourceSelect).toHaveTextContent("请选择");
+    await expectSelectOptions(editorDialog, "起点实体", ["黑铁令"]);
   });
 
 
@@ -972,7 +983,7 @@ describe("ChapterWorkbenchPage", () => {
     fireEvent.click(within(selectorDialog).getByRole("button", { name: "修改青岳宗" }));
 
     const editorDialog = await screen.findByRole("dialog", { name: "修改实体" });
-    expect(within(editorDialog).getByRole("option", { name: "林夜" })).toBeInTheDocument();
+    await expectSelectOptions(editorDialog, "领袖角色", ["林夜"]);
   });
 
   it("generates authorIntent into initial plan dialog and confirms with generated text", async () => {
@@ -1631,6 +1642,9 @@ describe("ChapterWorkbenchPage", () => {
     const terminateButton = await screen.findByRole("button", { name: "终止任务" });
     fireEvent.click(terminateButton);
 
+    const confirmDialog = await screen.findByRole("alertdialog", { name: "终止任务" });
+    fireEvent.click(within(confirmDialog).getByRole("button", { name: "终止任务" }));
+
     await waitFor(() => {
       expect(workflowsApi.terminateWorkflowTask).toHaveBeenCalledWith(9302);
     });
@@ -1900,7 +1914,7 @@ describe("ChapterWorkbenchPage", () => {
       expect(screen.getByText("previous-10")).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText("history limit"), { target: { value: "20" } });
+    await chooseSelect(document.body, "history limit", "20");
 
     await waitFor(() => {
       expect(chaptersApi.listChapterStageHistory).toHaveBeenCalledWith(1, 2, "plan", 20);

@@ -14,6 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getBook } from "@/lib/books-api";
 import { getChapter } from "@/lib/chapters-api";
 import { queryKeys } from "@/lib/query/query-keys";
@@ -89,15 +94,20 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
       {/* Actions */}
       <div className="flex items-center gap-1">
         {/* Theme toggle */}
-        <Button variant="ghost" size="icon" onClick={cycleTheme} aria-label="切换主题">
-          {theme === "dark" ? (
-            <Moon className="h-4 w-4" />
-          ) : theme === "system" ? (
-            <Monitor className="h-4 w-4" />
-          ) : (
-            <Sun className="h-4 w-4" />
-          )}
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={cycleTheme} aria-label="切换主题">
+              {theme === "dark" ? (
+                <Moon className="h-4 w-4" />
+              ) : theme === "system" ? (
+                <Monitor className="h-4 w-4" />
+              ) : (
+                <Sun className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>切换主题</TooltipContent>
+        </Tooltip>
 
         {/* User menu */}
         {user && (

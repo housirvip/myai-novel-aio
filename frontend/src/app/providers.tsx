@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 
 import { AuthProvider } from "@/app/auth";
 import { ThemeProvider, useTheme } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { queryClient } from "@/lib/query/query-client";
 
 function ThemedToaster() {
@@ -16,8 +17,10 @@ export function AppProviders({ children }: PropsWithChildren) {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          {children}
-          <ThemedToaster />
+          <TooltipProvider>
+            {children}
+            <ThemedToaster />
+          </TooltipProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>

@@ -1,5 +1,10 @@
 import type { ManualEntityRefs } from "../hooks/types";
 import type { WorkflowTaskView } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 
 function getWorkflowTaskStatusLabel(status: WorkflowTaskView["status"]) {
   if (status === "pending") return "排队中";
@@ -74,97 +79,72 @@ export function PlanIntentDialog({
     return null;
   }
 
+  const title = mode === "initial" ? "生成 plan" : "重新 plan";
+  const activeAuthorIntentPending = activeAuthorIntentTask && (
+    activeAuthorIntentTask.status === "pending" ||
+    activeAuthorIntentTask.status === "running" ||
+    activeAuthorIntentTask.status === "terminating"
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-background/80 backdrop-blur-sm px-4 pt-28 sm:pt-32 animate-in fade-in-0 duration-200" onClick={onCancel}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="plan-intent-dialog-title"
-        className="w-full max-w-xl rounded-xl bg-card p-6 shadow-2xl border border-border animate-in zoom-in-95 duration-200"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h3
-          id="plan-intent-dialog-title"
-          className="text-lg font-semibold text-foreground"
-        >
-          {mode === "initial" ? "生成 plan" : "重新 plan"}
-        </h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {mode === "initial"
-            ? "会基于当前 workflow 参数生成新的 plan，并带上当前 manualEntityRefs 勾选结果。你可以补充本次意图，也可以留空后直接确定。"
-            : "会基于当前 workflow 参数重新生成新的 plan 版本，并带上当前 manualEntityRefs 勾选结果。你可以补充本次意图，也可以留空后直接确定。"}
-        </p>
-        <div className="mt-4 rounded-lg bg-muted p-4 text-sm text-foreground">
+    <Dialog open={mode !== null} onOpenChange={(open) => { if (!open) onCancel(); }}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {mode === "initial"
+              ? "会基于当前 workflow 参数生成新的 plan，并带上当前 manualEntityRefs 勾选结果。你可以补充本次意图，也可以留空后直接确定。"
+              : "会基于当前 workflow 参数重新生成新的 plan 版本，并带上当前 manualEntityRefs 勾选结果。你可以补充本次意图，也可以留空后直接确定。"}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="rounded-lg bg-muted p-4 text-sm text-foreground">
           <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             本次带入的 manualEntityRefs
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <span className="rounded-full bg-background px-3 py-1 text-xs text-foreground">
-              角色 {manualEntityRefs.characterIds.length}
-            </span>
-            <span className="rounded-full bg-background px-3 py-1 text-xs text-foreground">
-              势力 {manualEntityRefs.factionIds.length}
-            </span>
-            <span className="rounded-full bg-background px-3 py-1 text-xs text-foreground">
-              物品 {manualEntityRefs.itemIds.length}
-            </span>
-            <span className="rounded-full bg-background px-3 py-1 text-xs text-foreground">
-              钩子 {manualEntityRefs.hookIds.length}
-            </span>
-            <span className="rounded-full bg-background px-3 py-1 text-xs text-foreground">
-              关系 {manualEntityRefs.relationIds.length}
-            </span>
-            <span className="rounded-full bg-background px-3 py-1 text-xs text-foreground">
-              世界设定 {manualEntityRefs.worldSettingIds.length}
-            </span>
+            <Badge variant="secondary">角色 {manualEntityRefs.characterIds.length}</Badge>
+            <Badge variant="secondary">势力 {manualEntityRefs.factionIds.length}</Badge>
+            <Badge variant="secondary">物品 {manualEntityRefs.itemIds.length}</Badge>
+            <Badge variant="secondary">钩子 {manualEntityRefs.hookIds.length}</Badge>
+            <Badge variant="secondary">关系 {manualEntityRefs.relationIds.length}</Badge>
+            <Badge variant="secondary">世界设定 {manualEntityRefs.worldSettingIds.length}</Badge>
           </div>
         </div>
-        <label className="mt-4 block space-y-2 text-sm text-foreground">
-          <span>
-            {mode === "initial"
-              ? "本次 plan 意图"
-              : "本次重新 plan 意图"}
-          </span>
-          <textarea
+
+        <label className="block space-y-2 text-sm text-foreground">
+          <span>{mode === "initial" ? "本次 plan 意图" : "本次重新 plan 意图"}</span>
+          <Textarea
             value={intentDraft}
             onChange={(event) => onIntentDraftChange(event.target.value)}
-            className="min-h-32 w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
+            className="min-h-32"
             placeholder="可为空；留空时将不传 authorIntent。"
           />
         </label>
-        <div className="mt-5 space-y-3">
+
+        <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={onGenerateAuthorIntent}
               disabled={generateAuthorIntentPending || isAnyWorkflowBusy}
-              className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary disabled:opacity-60"
+              className="border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
             >
               {generateAuthorIntentPending
                 ? "提交中..."
-                : activeAuthorIntentTask &&
-                    (activeAuthorIntentTask.status === "pending" ||
-                      activeAuthorIntentTask.status === "running" ||
-                      activeAuthorIntentTask.status === "terminating")
+                : activeAuthorIntentPending
                   ? "生成 authorIntent 中..."
                   : "生成 authorIntent"}
-            </button>
-            <div className="flex flex-wrap justify-end gap-3">
-              <button
-                onClick={onCancel}
-                disabled={workflowMutationPending}
-                className="rounded-lg bg-muted px-4 py-2 text-sm font-medium text-muted-foreground disabled:opacity-60"
-              >
+            </Button>
+            <DialogFooter className="gap-2 sm:space-x-0">
+              <Button type="button" variant="secondary" onClick={onCancel} disabled={workflowMutationPending}>
                 取消
-              </button>
-              <button
-                onClick={onConfirm}
-                disabled={workflowMutationPending}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
-              >
+              </Button>
+              <Button type="button" onClick={onConfirm} disabled={workflowMutationPending}>
                 确定
-              </button>
-            </div>
+              </Button>
+            </DialogFooter>
           </div>
 
           {activeAuthorIntentTask && (
@@ -172,57 +152,32 @@ export function PlanIntentDialog({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="font-medium text-foreground">
-                    {getWorkflowTaskStatusLabel(
-                      activeAuthorIntentTask.status,
-                    )}{" "}
-                    ·{" "}
-                    {getWorkflowTaskStageLabel(
-                      activeAuthorIntentTask.stage,
-                    )}
+                    {getWorkflowTaskStatusLabel(activeAuthorIntentTask.status)} · {getWorkflowTaskStageLabel(activeAuthorIntentTask.stage)}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     任务 #{activeAuthorIntentTask.id}
-                    {activeAuthorIntentTask.progressPercent != null
-                      ? ` · ${activeAuthorIntentTask.progressPercent}%`
-                      : ""}
+                    {activeAuthorIntentTask.progressPercent != null ? ` · ${activeAuthorIntentTask.progressPercent}%` : ""}
                   </div>
                 </div>
-                {(activeAuthorIntentTask.status === "pending" ||
-                  activeAuthorIntentTask.status === "running" ||
-                  activeAuthorIntentTask.status === "terminating") && (
-                  <button
+                {activeAuthorIntentPending && (
+                  <Button
                     type="button"
-                    onClick={() =>
-                      onTerminateTask(activeAuthorIntentTask.id)
-                    }
-                    disabled={
-                      activeAuthorIntentTask.status === "terminating" ||
-                      terminatePending
-                    }
-                    className="rounded-lg border border-destructive/30 bg-background px-3 py-2 text-xs font-medium text-destructive disabled:opacity-60"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => onTerminateTask(activeAuthorIntentTask.id)}
+                    disabled={activeAuthorIntentTask.status === "terminating" || terminatePending}
                   >
-                    {activeAuthorIntentTask.status === "terminating"
-                      ? "终止中..."
-                      : terminatePending
-                        ? "提交中..."
-                        : "终止任务"}
-                  </button>
+                    {activeAuthorIntentTask.status === "terminating" ? "终止中..." : terminatePending ? "提交中..." : "终止任务"}
+                  </Button>
                 )}
               </div>
               {activeAuthorIntentTask.progressPercent != null && (
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all"
-                    style={{
-                      width: `${activeAuthorIntentTask.progressPercent}%`,
-                    }}
-                  />
-                </div>
+                <Progress className="mt-3" value={activeAuthorIntentTask.progressPercent} />
               )}
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

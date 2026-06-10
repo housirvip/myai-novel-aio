@@ -20,6 +20,12 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+async function chooseSelect(label: string, optionName: string) {
+  const trigger = screen.getByRole("combobox", { name: label });
+  fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse", pointerId: 1 });
+  fireEvent.click(await screen.findByRole("option", { name: optionName }));
+}
+
 describe("BookDashboardPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -156,6 +162,8 @@ describe("BookDashboardPage", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "删除书籍" }));
+    const deleteBookDialog = await screen.findByRole("alertdialog", { name: "删除书籍" });
+    fireEvent.click(within(deleteBookDialog).getByRole("button", { name: "删除书籍" }));
 
     await waitFor(() => {
       expect(booksApi.deleteBook).toHaveBeenCalledWith(1);
@@ -207,7 +215,7 @@ describe("BookDashboardPage", () => {
       expect(screen.getByRole("button", { name: "创建并进入工作台" })).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText("Provider"), { target: { value: "anthropic" } });
+    await chooseSelect("Provider", "anthropic");
     fireEvent.change(screen.getByLabelText("Low Model"), { target: { value: "claude-haiku-4-5" } });
     fireEvent.change(screen.getByLabelText("Mid Model"), { target: { value: "claude-sonnet-4-6" } });
     fireEvent.change(screen.getByLabelText("High Model"), { target: { value: "claude-opus-4-7" } });
@@ -241,6 +249,8 @@ describe("BookDashboardPage", () => {
     });
 
     fireEvent.click(screen.getAllByRole("button", { name: "删除章节" })[1]!);
+    const deleteChapterDialog = await screen.findByRole("alertdialog", { name: "删除章节" });
+    fireEvent.click(within(deleteChapterDialog).getByRole("button", { name: "删除章节" }));
 
     await waitFor(() => {
       expect(chaptersApi.deleteChapter).toHaveBeenCalledWith(1, 2);

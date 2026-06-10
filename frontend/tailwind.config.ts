@@ -35,6 +35,14 @@ const config: Config = {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
@@ -54,10 +62,11 @@ const config: Config = {
         sm: "0.25rem",
       },
       boxShadow: {
-        glow: "0 10px 40px rgba(109, 91, 255, 0.18)",
+        glow: "0 10px 40px hsl(var(--primary) / 0.18)",
       },
       fontFamily: {
         sans: [
+          '"Plus Jakarta Sans"',
           '"Inter"',
           '"Noto Sans SC"',
           '"PingFang SC"',

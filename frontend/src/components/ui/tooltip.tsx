@@ -4,8 +4,15 @@ import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from "reac
 import { cn } from "@/lib/utils";
 
 const TooltipProvider = TooltipPrimitive.Provider;
-const Tooltip = TooltipPrimitive.Root;
 const TooltipTrigger = TooltipPrimitive.Trigger;
+
+function Tooltip(props: ComponentPropsWithoutRef<typeof TooltipPrimitive.Root>) {
+  return (
+    <TooltipPrimitive.Provider>
+      <TooltipPrimitive.Root {...props} />
+    </TooltipPrimitive.Provider>
+  );
+}
 
 const TooltipContent = forwardRef<
   ElementRef<typeof TooltipPrimitive.Content>,

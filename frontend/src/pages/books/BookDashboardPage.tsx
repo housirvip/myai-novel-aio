@@ -3,7 +3,15 @@ import { PencilLine, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 
 import { formatApiErrorMessage } from "@/lib/api";
 import { deleteBook, getBook, updateBook } from "@/lib/books-api";
@@ -99,7 +107,13 @@ function createEditChapterForm(chapter: ChapterView): ChapterEditForm {
   };
 }
 
-const formInputClass = "w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground outline-none transition focus:border-primary";
+const providerOptions: Array<{ value: ChapterCreateWorkflowProvider; label: string }> = [
+  { value: "default", label: "跟随个人默认" },
+  { value: "mock", label: "mock" },
+  { value: "openai", label: "openai" },
+  { value: "anthropic", label: "anthropic" },
+  { value: "custom", label: "custom" },
+];
 
 function ResourceSelectionGroup(props: {
   title: string;
@@ -108,7 +122,7 @@ function ResourceSelectionGroup(props: {
   onToggle: (resourceId: number) => void;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-muted p-3">
+    <Card className="rounded-lg bg-muted p-3 shadow-none">
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-medium text-foreground">{props.title}</div>
         <div className="text-xs text-muted-foreground">已选 {props.selectedIds.length}</div>
@@ -125,11 +139,14 @@ function ResourceSelectionGroup(props: {
               }`}
             >
               <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={checked}
-                  onChange={() => props.onToggle(option.id)}
-                  className="mt-1 h-4 w-4 rounded border-border"
+                  onCheckedChange={(nextChecked) => {
+                    if ((nextChecked === true) !== checked) {
+                      props.onToggle(option.id);
+                    }
+                  }}
+                  className="mt-1"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="truncate">{option.name}</div>
@@ -140,7 +157,7 @@ function ResourceSelectionGroup(props: {
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -156,6 +173,8 @@ export function BookDashboardPage() {
   const previousSuggestedChapterNoRef = useRef<number | null>(null);
   const lastHydratedCreateDefaultsRef = useRef<string | null>(null);
   const [editingChapterNo, setEditingChapterNo] = useState<number | null>(null);
+  const [deleteBookDialogOpen, setDeleteBookDialogOpen] = useState(false);
+  const [pendingDeleteChapterNo, setPendingDeleteChapterNo] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<ChapterEditForm>({
     title: "",
     summary: "",
@@ -324,6 +343,7 @@ export function BookDashboardPage() {
     mutationFn: () => deleteBook(safeBookId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.books() });
+      setDeleteBookDialogOpen(false);
       navigate("/app");
     },
   });
@@ -342,6 +362,7 @@ export function BookDashboardPage() {
     onSuccess: async () => {
       await refreshBookContext();
       setEditingChapterNo(null);
+      setPendingDeleteChapterNo(null);
     },
   });
 
@@ -445,17 +466,14 @@ export function BookDashboardPage() {
   };
 
   const confirmDeleteBook = () => {
-    if (!window.confirm(`确定删除《${book?.title ?? "当前书籍"}》吗？此操作不可撤销。`)) {
-      return;
-    }
     deleteBookMutation.mutate();
   };
 
-  const confirmDeleteChapter = (chapterNo: number) => {
-    if (!window.confirm(`确定删除第 ${chapterNo} 章吗？此操作不可撤销。`)) {
+  const confirmDeleteChapter = () => {
+    if (pendingDeleteChapterNo === null) {
       return;
     }
-    deleteChapterMutation.mutate(chapterNo);
+    deleteChapterMutation.mutate(pendingDeleteChapterNo);
   };
 
   if (bookId === null) {
@@ -468,12 +486,12 @@ export function BookDashboardPage() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-xl border border-border bg-gradient-to-r from-slate-950 to-slate-800 p-6 text-white">
-        <p className="text-sm text-white/70">单书总控面板</p>
+      <header className="rounded-xl border border-border bg-gradient-to-br from-primary via-primary/90 to-accent p-6 text-primary-foreground">
+        <p className="text-sm text-primary-foreground/75">单书总控面板</p>
         <h2 className="mt-2 text-2xl font-semibold">{book?.title ?? "书籍工作台"}</h2>
-        <div className="mt-4 rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+        <div className="mt-4 rounded-lg border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-3">
           <div className="max-h-56 overflow-y-auto pr-1">
-            <p className="whitespace-pre-wrap break-words text-sm leading-7 text-white/78">
+            <p className="whitespace-pre-wrap break-words text-sm leading-7 text-primary-foreground/75">
               {book?.summary || "这里会展示书籍信息、章节列表、资源概览与最近活跃章节。"}
             </p>
           </div>
@@ -482,114 +500,101 @@ export function BookDashboardPage() {
 
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
         <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">章节创建</h3>
-                <p className="mt-1 text-sm text-muted-foreground">直接在 WebUI 内创建章节并进入对应工作台。</p>
+          <Card>
+            <CardHeader className="p-5 pb-0">
+              <CardTitle className="text-lg">章节创建</CardTitle>
+              <CardDescription>直接在 WebUI 内创建章节并进入对应工作台。</CardDescription>
+            </CardHeader>
+            <CardContent className="p-5">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="章节号">
+                  <Input
+                    value={createForm.chapterNo}
+                    onChange={(event) => setCreateForm((current) => ({ ...current, chapterNo: event.target.value }))}
+                    inputMode="numeric"
+                    placeholder="例如 12"
+                  />
+                </Field>
+                <Field label="目标字数">
+                  <Input
+                    value={createForm.targetWordCount}
+                    onChange={(event) => setCreateForm((current) => ({ ...current, targetWordCount: event.target.value }))}
+                    inputMode="numeric"
+                    placeholder="例如 3000"
+                  />
+                </Field>
+                <Field label="Provider">
+                  <Select
+                    value={createForm.provider}
+                    onValueChange={(value) => setCreateForm((current) => ({ ...current, provider: value as ChapterCreateWorkflowProvider }))}
+                  >
+                    <SelectTrigger aria-label="Provider">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {providerOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Low Model">
+                  <Input
+                    value={createForm.lowModel}
+                    onChange={(event) => setCreateForm((current) => ({ ...current, lowModel: event.target.value }))}
+                    placeholder="留空则沿用个人默认"
+                  />
+                </Field>
+                <Field label="Mid Model">
+                  <Input
+                    value={createForm.midModel}
+                    onChange={(event) => setCreateForm((current) => ({ ...current, midModel: event.target.value }))}
+                    placeholder="留空则沿用个人默认"
+                  />
+                </Field>
+                <Field label="High Model">
+                  <Input
+                    value={createForm.highModel}
+                    onChange={(event) => setCreateForm((current) => ({ ...current, highModel: event.target.value }))}
+                    placeholder="留空则沿用个人默认"
+                  />
+                </Field>
+                <Field label="章节标题" className="col-span-2">
+                  <Input
+                    value={createForm.title}
+                    onChange={(event) => setCreateForm((current) => ({ ...current, title: event.target.value }))}
+                    placeholder="例如：风雪夜归人"
+                  />
+                </Field>
               </div>
-            </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <label className="space-y-2 text-sm text-muted-foreground">
-                <span>章节号</span>
-                <input
-                  value={createForm.chapterNo}
-                  onChange={(event) => setCreateForm((current) => ({ ...current, chapterNo: event.target.value }))}
-                  className={formInputClass}
-                  inputMode="numeric"
-                  placeholder="例如 12"
-                />
-              </label>
-              <label className="space-y-2 text-sm text-muted-foreground">
-                <span>目标字数</span>
-                <input
-                  value={createForm.targetWordCount}
-                  onChange={(event) => setCreateForm((current) => ({ ...current, targetWordCount: event.target.value }))}
-                  className={formInputClass}
-                  inputMode="numeric"
-                  placeholder="例如 3000"
-                />
-              </label>
-              <label className="space-y-2 text-sm text-muted-foreground">
-                <span>Provider</span>
-                <select
-                  value={createForm.provider}
-                  onChange={(event) => setCreateForm((current) => ({ ...current, provider: event.target.value as ChapterCreateWorkflowProvider }))}
-                  className={formInputClass}
-                >
-                  <option value="default">跟随个人默认</option>
-                  <option value="mock">mock</option>
-                  <option value="openai">openai</option>
-                  <option value="anthropic">anthropic</option>
-                  <option value="custom">custom</option>
-                </select>
-              </label>
-              <label className="space-y-2 text-sm text-muted-foreground">
-                <span>Low Model</span>
-                <input
-                  value={createForm.lowModel}
-                  onChange={(event) => setCreateForm((current) => ({ ...current, lowModel: event.target.value }))}
-                  className={formInputClass}
-                  placeholder="留空则沿用个人默认"
-                />
-              </label>
-              <label className="space-y-2 text-sm text-muted-foreground">
-                <span>Mid Model</span>
-                <input
-                  value={createForm.midModel}
-                  onChange={(event) => setCreateForm((current) => ({ ...current, midModel: event.target.value }))}
-                  className={formInputClass}
-                  placeholder="留空则沿用个人默认"
-                />
-              </label>
-              <label className="space-y-2 text-sm text-muted-foreground">
-                <span>High Model</span>
-                <input
-                  value={createForm.highModel}
-                  onChange={(event) => setCreateForm((current) => ({ ...current, highModel: event.target.value }))}
-                  className={formInputClass}
-                  placeholder="留空则沿用个人默认"
-                />
-              </label>
-              <label className="col-span-2 space-y-2 text-sm text-muted-foreground">
-                <span>章节标题</span>
-                <input
-                  value={createForm.title}
-                  onChange={(event) => setCreateForm((current) => ({ ...current, title: event.target.value }))}
-                  className={formInputClass}
-                  placeholder="例如：风雪夜归人"
-                />
-              </label>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-muted-foreground">建议下一章编号：第 {nextChapterNo ?? "—"} 章</div>
-              <button
-                onClick={submitCreate}
-                disabled={createChapterMutation.isPending}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
-              >
-                {createChapterMutation.isPending ? "创建中..." : "创建并进入工作台"}
-              </button>
-            </div>
-
-            {createChapterMutation.isError && (
-              <div className="mt-3 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {formatApiErrorMessage(createChapterMutation.error, "创建章节失败")}
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-muted-foreground">建议下一章编号：第 {nextChapterNo ?? "—"} 章</div>
+                <Button onClick={submitCreate} disabled={createChapterMutation.isPending}>
+                  {createChapterMutation.isPending ? "创建中..." : "创建并进入工作台"}
+                </Button>
               </div>
-            )}
-          </div>
 
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
+              {createChapterMutation.isError && (
+                <div className="mt-3 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {formatApiErrorMessage(createChapterMutation.error, "创建章节失败")}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 p-5 pb-0">
               <div>
-                <h3 className="text-lg font-semibold text-foreground">章节列表</h3>
-                <p className="mt-1 text-sm text-muted-foreground">按章节查看当前生命周期进度，并可直接进入编辑与阅读入口。</p>
+                <CardTitle className="text-lg">章节列表</CardTitle>
+                <CardDescription className="mt-1">按章节查看当前生命周期进度，并可直接进入编辑与阅读入口。</CardDescription>
               </div>
               <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">共 {chapters.length} 章</span>
-            </div>
-            <div className="mt-4 space-y-3">
+            </CardHeader>
+            <CardContent className="mt-4 space-y-3 p-5 pt-0">
+
               {chaptersQuery.isLoading && (
                 <div className="space-y-3">
                   <Skeleton className="h-20 rounded-xl" />
@@ -601,7 +606,7 @@ export function BookDashboardPage() {
                 const stageBadges = formatStageState(chapter);
                 const isEditing = chapter.chapterNo === editingChapterNo;
                 return (
-                  <div key={chapter.id} className="rounded-xl border border-border bg-muted/50 p-4">
+                  <Card key={chapter.id} className="bg-muted/50 p-4 shadow-none">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
@@ -627,71 +632,63 @@ export function BookDashboardPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        <Link
-                          to={chapterWorkbenchPath(safeBookId, chapter.chapterNo)}
-                          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-                        >
-                          进入工作台
-                        </Link>
-                        <button
-                          onClick={() => startEditChapter(chapter)}
-                          className="inline-flex items-center gap-2 rounded-lg bg-card px-4 py-2 text-sm font-medium text-muted-foreground"
-                        >
+                        <Button asChild>
+                          <Link to={chapterWorkbenchPath(safeBookId, chapter.chapterNo)}>进入工作台</Link>
+                        </Button>
+                        <Button variant="secondary" onClick={() => startEditChapter(chapter)}>
                           <PencilLine className="h-4 w-4" />
                           编辑元信息
-                        </button>
-                        <button
-                          onClick={() => confirmDeleteChapter(chapter.chapterNo)}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={() => setPendingDeleteChapterNo(chapter.chapterNo)}
                           disabled={deleteChapterMutation.isPending}
-                          className="inline-flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive disabled:opacity-60"
                         >
                           <Trash2 className="h-4 w-4" />
                           删除章节
-                        </button>
+                        </Button>
                       </div>
-                    </div>
 
+                    </div>
                     {isEditing && (
                       <div className="mt-4 grid gap-3 border-t border-border pt-4 md:grid-cols-2">
-                        <label className="space-y-2 text-sm text-muted-foreground md:col-span-2">
-                          <span>章节标题</span>
-                          <input
+                        <Field label="章节标题" className="md:col-span-2">
+                          <Input
                             value={editForm.title}
                             onChange={(event) => setEditForm((current) => ({ ...current, title: event.target.value }))}
-                            className={formInputClass}
                           />
-                        </label>
-                        <label className="space-y-2 text-sm text-muted-foreground">
-                          <span>章节状态</span>
-                          <select
+                        </Field>
+                        <Field label="章节状态">
+                          <Select
                             value={editForm.status}
-                            onChange={(event) => setEditForm((current) => ({ ...current, status: event.target.value }))}
-                            className={formInputClass}
+                            onValueChange={(value) => setEditForm((current) => ({ ...current, status: value }))}
                           >
-                            {chapterStatuses.map((status) => (
-                              <option key={status} value={status}>
-                                {status}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="space-y-2 text-sm text-muted-foreground">
-                          <span>目标字数</span>
-                          <input
+                            <SelectTrigger aria-label="章节状态">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {chapterStatuses.map((status) => (
+                                <SelectItem key={status} value={status}>
+                                  {status}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field label="目标字数">
+                          <Input
                             value={editForm.targetWordCount}
                             onChange={(event) => setEditForm((current) => ({ ...current, targetWordCount: event.target.value }))}
-                            className={formInputClass}
                             inputMode="numeric"
                           />
-                        </label>
-                        <label className="space-y-2 text-sm text-muted-foreground md:col-span-2">
-                          <span>章节摘要</span>
-                          <textarea
+                        </Field>
+                        <Field label="章节摘要" className="md:col-span-2">
+                          <Textarea
                             value={editForm.summary}
                             onChange={(event) => setEditForm((current) => ({ ...current, summary: event.target.value }))}
-                            className="min-h-24 w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground outline-none transition focus:border-primary"
+                            className="min-h-24"
                           />
-                        </label>
+                        </Field>
 
                         <div className="space-y-3 md:col-span-2">
                           <div>
@@ -740,26 +737,16 @@ export function BookDashboardPage() {
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {chapter.currentFinalId && (
-                              <Link
-                                to={bookReaderPath(safeBookId)}
-                                className="rounded-lg bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-400"
-                              >
-                                前往阅读页
-                              </Link>
+                              <Button asChild variant="secondary">
+                                <Link to={bookReaderPath(safeBookId)}>前往阅读页</Link>
+                              </Button>
                             )}
-                            <button
-                              onClick={() => setEditingChapterNo(null)}
-                              className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground"
-                            >
+                            <Button variant="secondary" onClick={() => setEditingChapterNo(null)}>
                               取消
-                            </button>
-                            <button
-                              onClick={submitEdit}
-                              disabled={updateChapterMutation.isPending}
-                              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
-                            >
+                            </Button>
+                            <Button onClick={submitEdit} disabled={updateChapterMutation.isPending}>
                               {updateChapterMutation.isPending ? "保存中..." : "保存章节信息"}
-                            </button>
+                            </Button>
                           </div>
                         </div>
                         {(updateChapterMutation.isError || deleteChapterMutation.isError) && (
@@ -771,7 +758,7 @@ export function BookDashboardPage() {
                         )}
                       </div>
                     )}
-                  </div>
+                  </Card>
                 );
               })}
               {!chaptersQuery.isLoading && chapters.length === 0 && (
@@ -779,69 +766,63 @@ export function BookDashboardPage() {
                   这本书还没有章节，直接使用上方表单即可创建第一章。
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
+          <Card>
+            <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 p-5 pb-0">
               <div>
-                <h3 className="text-lg font-semibold text-foreground">书籍编辑</h3>
-                <p className="mt-1 text-sm text-muted-foreground">直接修改标题、简介、目标章节数与当前状态。</p>
+                <CardTitle className="text-lg">书籍编辑</CardTitle>
+                <CardDescription className="mt-1">直接修改标题、简介、目标章节数与当前状态。</CardDescription>
               </div>
-              <button
-                onClick={confirmDeleteBook}
+              <Button
+                variant="destructive"
+                onClick={() => setDeleteBookDialogOpen(true)}
                 disabled={deleteBookMutation.isPending}
-                className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive disabled:opacity-60"
+                className="shrink-0 whitespace-nowrap"
               >
                 <Trash2 className="h-4 w-4" />
                 删除书籍
-              </button>
-            </div>
-            <div className="mt-4 space-y-3">
-              <label className="space-y-2 text-sm text-muted-foreground">
-                <span>书籍标题</span>
-                <input
+              </Button>
+            </CardHeader>
+            <CardContent className="mt-4 space-y-3 p-5 pt-0">
+              <Field label="书籍标题">
+                <Input
                   value={bookForm.title}
                   onChange={(event) => setBookForm((current) => ({ ...current, title: event.target.value }))}
-                  className={formInputClass}
                 />
-              </label>
-              <label className="space-y-2 text-sm text-muted-foreground">
-                <span>书籍状态</span>
-                <input
+              </Field>
+              <Field label="书籍状态">
+                <Input
                   value={bookForm.status}
                   onChange={(event) => setBookForm((current) => ({ ...current, status: event.target.value }))}
-                  className={formInputClass}
                   placeholder="例如 drafting / ongoing / completed"
                 />
-              </label>
-              <label className="space-y-2 text-sm text-muted-foreground">
-                <span>目标章节数</span>
-                <input
+              </Field>
+              <Field label="目标章节数">
+                <Input
                   value={bookForm.targetChapterCount}
                   onChange={(event) => setBookForm((current) => ({ ...current, targetChapterCount: event.target.value }))}
-                  className={formInputClass}
                   inputMode="numeric"
                   placeholder="例如 100"
                 />
-              </label>
-              <label className="space-y-2 text-sm text-muted-foreground">
-                <span>书籍简介</span>
-                <textarea
+              </Field>
+              <Field label="书籍简介">
+                <Textarea
                   value={bookForm.summary}
                   onChange={(event) => setBookForm((current) => ({ ...current, summary: event.target.value }))}
-                  className="min-h-28 w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground outline-none transition focus:border-primary"
+                  className="min-h-28"
                 />
-              </label>
-              <button
+              </Field>
+              <Button
                 onClick={() => updateBookMutation.mutate()}
                 disabled={updateBookMutation.isPending || !bookForm.title.trim()}
-                className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:opacity-60"
+                className="w-full"
               >
                 {updateBookMutation.isPending ? "保存中..." : "保存书籍信息"}
-              </button>
+              </Button>
               {(updateBookMutation.isError || deleteBookMutation.isError) && (
                 <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                   {updateBookMutation.isError
@@ -849,12 +830,14 @@ export function BookDashboardPage() {
                     : formatApiErrorMessage(deleteBookMutation.error, "删除书籍失败")}
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <h3 className="text-lg font-semibold text-foreground">书籍概览</h3>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+          <Card>
+            <CardHeader className="p-5 pb-0">
+              <CardTitle className="text-lg">书籍概览</CardTitle>
+            </CardHeader>
+            <CardContent className="mt-4 grid grid-cols-2 gap-3 p-5 pt-0 text-sm text-muted-foreground">
               <div className="rounded-lg bg-muted p-4">
                 <div className="text-xs text-muted-foreground">目标章节</div>
                 <div className="mt-1 text-lg font-semibold text-foreground">{book?.targetChapterCount ?? "—"}</div>
@@ -871,10 +854,34 @@ export function BookDashboardPage() {
                 <div className="text-xs text-muted-foreground">最近更新</div>
                 <div className="mt-1 text-sm font-semibold text-foreground">{book?.updatedAt ? new Date(book.updatedAt).toLocaleString("zh-CN") : "—"}</div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+      <ConfirmDialog
+        open={deleteBookDialogOpen}
+        onOpenChange={setDeleteBookDialogOpen}
+        title="删除书籍"
+        description={`确定删除《${book?.title ?? "当前书籍"}》吗？此操作不可撤销。`}
+        confirmLabel="删除书籍"
+        destructive
+        pending={deleteBookMutation.isPending}
+        onConfirm={confirmDeleteBook}
+      />
+      <ConfirmDialog
+        open={pendingDeleteChapterNo !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingDeleteChapterNo(null);
+          }
+        }}
+        title="删除章节"
+        description={`确定删除第 ${pendingDeleteChapterNo ?? ""} 章吗？此操作不可撤销。`}
+        confirmLabel="删除章节"
+        destructive
+        pending={deleteChapterMutation.isPending}
+        onConfirm={confirmDeleteChapter}
+      />
     </section>
   );
 }

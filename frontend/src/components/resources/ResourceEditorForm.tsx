@@ -1,5 +1,15 @@
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import type { CharacterView, FactionView } from "@/lib/types";
 
 import {
@@ -23,19 +33,53 @@ import {
   type ResourceEditorFormState,
 } from "./resource-editor-shared";
 
-function Field(props: { label: string; children: ReactNode }) {
+type Option = { value: string; label: string };
+
+const EMPTY_SELECT_VALUE = "__empty__";
+
+function OptionSelect(props: {
+  label: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  options: ReadonlyArray<Option>;
+  placeholder?: string;
+  disabled?: boolean;
+}) {
   return (
-    <label className="block space-y-2 text-sm text-muted-foreground">
-      <span>{props.label}</span>
-      {props.children}
-    </label>
+    <Field label={props.label}>
+      <Select value={props.value || EMPTY_SELECT_VALUE} onValueChange={(value) => props.onValueChange(value === EMPTY_SELECT_VALUE ? "" : value)} disabled={props.disabled}>
+        <SelectTrigger aria-label={props.label}>
+          <SelectValue placeholder={props.placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {props.options.map((option) => (
+            <SelectItem key={option.value || EMPTY_SELECT_VALUE} value={option.value || EMPTY_SELECT_VALUE}>{option.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Field>
   );
 }
 
-const inputClass = "w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary";
+function textInput(
+  label: string,
+  value: string,
+  onChange: (value: string) => void,
+  props: { placeholder?: string; inputMode?: "numeric" } = {},
+) {
+  return (
+    <Field label={label}>
+      <Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={props.placeholder} inputMode={props.inputMode} />
+    </Field>
+  );
+}
 
-function textareaClass(minHeight = "min-h-28") {
-  return `${minHeight} w-full rounded-lg border border-border bg-card px-3 py-3 text-sm text-foreground outline-none transition focus:border-primary`;
+function textArea(label: string, value: string, onChange: (value: string) => void, minHeight = "min-h-28") {
+  return (
+    <Field label={label}>
+      <Textarea value={value} onChange={(event) => onChange(event.target.value)} className={minHeight} />
+    </Field>
+  );
 }
 
 export function ResourceEditorForm(props: {
@@ -53,25 +97,19 @@ export function ResourceEditorForm(props: {
       ? props.pickerSources.factions.map((item: FactionView) => ({ value: String(item.id), label: item.name }))
       : [];
 
+  const setField = (patch: Partial<ResourceEditorFormState>) => props.setForm((current) => ({ ...current, ...patch } as ResourceEditorFormState));
+
   if (props.resourceType === "worldSettings") {
     return (
       <div className="space-y-3">
-        <Field label="标题"><input value={props.form.title} onChange={(event) => props.setForm((current) => ({ ...current, title: event.target.value }))} className={inputClass} /></Field>
+        {textInput("标题", props.form.title, (title) => setField({ title }))}
         <div className="grid gap-3 md:grid-cols-2">
-          <Field label="分类">
-            <select value={props.form.category} onChange={(event) => props.setForm((current) => ({ ...current, category: event.target.value }))} className={inputClass}>
-              {worldSettingCategoryOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </Field>
-          <Field label="状态">
-            <select value={props.form.status} onChange={(event) => props.setForm((current) => ({ ...current, status: event.target.value }))} className={inputClass}>
-              {worldSettingStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </Field>
+          <OptionSelect label="分类" value={props.form.category} onValueChange={(category) => setField({ category })} options={worldSettingCategoryOptions} />
+          <OptionSelect label="状态" value={props.form.status} onValueChange={(status) => setField({ status })} options={worldSettingStatusOptions} />
         </div>
-        <Field label="设定正文"><textarea value={props.form.content} onChange={(event) => props.setForm((current) => ({ ...current, content: event.target.value }))} className={textareaClass("min-h-40")} /></Field>
-        <Field label="附加备注"><textarea value={props.form.appendNotes} onChange={(event) => props.setForm((current) => ({ ...current, appendNotes: event.target.value }))} className={textareaClass("min-h-24")} /></Field>
-        <Field label="关键词"><input value={props.form.keywords} onChange={(event) => props.setForm((current) => ({ ...current, keywords: event.target.value }))} className={inputClass} placeholder="逗号分隔" /></Field>
+        {textArea("设定正文", props.form.content, (content) => setField({ content }), "min-h-40")}
+        {textArea("附加备注", props.form.appendNotes, (appendNotes) => setField({ appendNotes }), "min-h-24")}
+        {textInput("关键词", props.form.keywords, (keywords) => setField({ keywords }), { placeholder: "逗号分隔" })}
       </div>
     );
   }
@@ -80,26 +118,22 @@ export function ResourceEditorForm(props: {
     return (
       <div className="space-y-3">
         <div className="grid gap-3 md:grid-cols-2">
-          <Field label="姓名"><input value={props.form.name} onChange={(event) => props.setForm((current) => ({ ...current, name: event.target.value }))} className={inputClass} /></Field>
-          <Field label="别名"><input value={props.form.alias} onChange={(event) => props.setForm((current) => ({ ...current, alias: event.target.value }))} className={inputClass} /></Field>
-          <Field label="性别"><input value={props.form.gender} onChange={(event) => props.setForm((current) => ({ ...current, gender: event.target.value }))} className={inputClass} /></Field>
-          <Field label="年龄"><input value={props.form.age} onChange={(event) => props.setForm((current) => ({ ...current, age: event.target.value }))} className={inputClass} inputMode="numeric" /></Field>
-          <Field label="状态">
-            <select value={props.form.status} onChange={(event) => props.setForm((current) => ({ ...current, status: event.target.value }))} className={inputClass}>
-              {characterStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </Field>
-          <Field label="当前位置"><input value={props.form.currentLocation} onChange={(event) => props.setForm((current) => ({ ...current, currentLocation: event.target.value }))} className={inputClass} /></Field>
+          {textInput("姓名", props.form.name, (name) => setField({ name }))}
+          {textInput("别名", props.form.alias, (alias) => setField({ alias }))}
+          {textInput("性别", props.form.gender, (gender) => setField({ gender }))}
+          {textInput("年龄", props.form.age, (age) => setField({ age }), { inputMode: "numeric" })}
+          <OptionSelect label="状态" value={props.form.status} onValueChange={(status) => setField({ status })} options={characterStatusOptions} />
+          {textInput("当前位置", props.form.currentLocation, (currentLocation) => setField({ currentLocation }))}
         </div>
-        <Field label="性格"><textarea value={props.form.personality} onChange={(event) => props.setForm((current) => ({ ...current, personality: event.target.value }))} className={textareaClass("min-h-24")} /></Field>
-        <Field label="背景"><textarea value={props.form.background} onChange={(event) => props.setForm((current) => ({ ...current, background: event.target.value }))} className={textareaClass("min-h-32")} /></Field>
-        <Field label="职业"><input value={props.form.professions} onChange={(event) => props.setForm((current) => ({ ...current, professions: event.target.value }))} className={inputClass} /></Field>
-        <Field label="等级/境界"><input value={props.form.levels} onChange={(event) => props.setForm((current) => ({ ...current, levels: event.target.value }))} className={inputClass} /></Field>
-        <Field label="货币/资源"><input value={props.form.currencies} onChange={(event) => props.setForm((current) => ({ ...current, currencies: event.target.value }))} className={inputClass} /></Field>
-        <Field label="能力"><textarea value={props.form.abilities} onChange={(event) => props.setForm((current) => ({ ...current, abilities: event.target.value }))} className={textareaClass("min-h-24")} /></Field>
-        <Field label="目标"><textarea value={props.form.goal} onChange={(event) => props.setForm((current) => ({ ...current, goal: event.target.value }))} className={textareaClass("min-h-24")} /></Field>
-        <Field label="附加备注"><textarea value={props.form.appendNotes} onChange={(event) => props.setForm((current) => ({ ...current, appendNotes: event.target.value }))} className={textareaClass("min-h-24")} /></Field>
-        <Field label="关键词"><input value={props.form.keywords} onChange={(event) => props.setForm((current) => ({ ...current, keywords: event.target.value }))} className={inputClass} placeholder="逗号分隔" /></Field>
+        {textArea("性格", props.form.personality, (personality) => setField({ personality }), "min-h-24")}
+        {textArea("背景", props.form.background, (background) => setField({ background }), "min-h-32")}
+        {textInput("职业", props.form.professions, (professions) => setField({ professions }))}
+        {textInput("等级/境界", props.form.levels, (levels) => setField({ levels }))}
+        {textInput("货币/资源", props.form.currencies, (currencies) => setField({ currencies }))}
+        {textArea("能力", props.form.abilities, (abilities) => setField({ abilities }), "min-h-24")}
+        {textArea("目标", props.form.goal, (goal) => setField({ goal }), "min-h-24")}
+        {textArea("附加备注", props.form.appendNotes, (appendNotes) => setField({ appendNotes }), "min-h-24")}
+        {textInput("关键词", props.form.keywords, (keywords) => setField({ keywords }), { placeholder: "逗号分隔" })}
       </div>
     );
   }
@@ -108,29 +142,16 @@ export function ResourceEditorForm(props: {
     return (
       <div className="space-y-3">
         <div className="grid gap-3 md:grid-cols-2">
-          <Field label="势力名称"><input value={props.form.name} onChange={(event) => props.setForm((current) => ({ ...current, name: event.target.value }))} className={inputClass} /></Field>
-          <Field label="分类">
-            <select value={props.form.category} onChange={(event) => props.setForm((current) => ({ ...current, category: event.target.value }))} className={inputClass}>
-              {factionCategoryOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </Field>
-          <Field label="状态">
-            <select value={props.form.status} onChange={(event) => props.setForm((current) => ({ ...current, status: event.target.value }))} className={inputClass}>
-              {factionStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </Field>
-          <Field label="总部"><input value={props.form.headquarter} onChange={(event) => props.setForm((current) => ({ ...current, headquarter: event.target.value }))} className={inputClass} /></Field>
+          {textInput("势力名称", props.form.name, (name) => setField({ name }))}
+          <OptionSelect label="分类" value={props.form.category} onValueChange={(category) => setField({ category })} options={factionCategoryOptions} />
+          <OptionSelect label="状态" value={props.form.status} onValueChange={(status) => setField({ status })} options={factionStatusOptions} />
+          {textInput("总部", props.form.headquarter, (headquarter) => setField({ headquarter }))}
         </div>
-        <Field label="领袖角色">
-          <select value={props.form.leaderCharacterId} onChange={(event) => props.setForm((current) => ({ ...current, leaderCharacterId: event.target.value }))} className={inputClass}>
-            <option value="">未设置</option>
-            {leaderOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </Field>
-        <Field label="核心目标"><textarea value={props.form.coreGoal} onChange={(event) => props.setForm((current) => ({ ...current, coreGoal: event.target.value }))} className={textareaClass("min-h-24")} /></Field>
-        <Field label="描述"><textarea value={props.form.description} onChange={(event) => props.setForm((current) => ({ ...current, description: event.target.value }))} className={textareaClass("min-h-32")} /></Field>
-        <Field label="附加备注"><textarea value={props.form.appendNotes} onChange={(event) => props.setForm((current) => ({ ...current, appendNotes: event.target.value }))} className={textareaClass("min-h-24")} /></Field>
-        <Field label="关键词"><input value={props.form.keywords} onChange={(event) => props.setForm((current) => ({ ...current, keywords: event.target.value }))} className={inputClass} placeholder="逗号分隔" /></Field>
+        <OptionSelect label="领袖角色" value={props.form.leaderCharacterId} onValueChange={(leaderCharacterId) => setField({ leaderCharacterId })} options={[{ value: "", label: "未设置" }, ...leaderOptions]} placeholder="未设置" />
+        {textArea("核心目标", props.form.coreGoal, (coreGoal) => setField({ coreGoal }), "min-h-24")}
+        {textArea("描述", props.form.description, (description) => setField({ description }), "min-h-32")}
+        {textArea("附加备注", props.form.appendNotes, (appendNotes) => setField({ appendNotes }), "min-h-24")}
+        {textInput("关键词", props.form.keywords, (keywords) => setField({ keywords }), { placeholder: "逗号分隔" })}
       </div>
     );
   }
@@ -139,43 +160,17 @@ export function ResourceEditorForm(props: {
     return (
       <div className="space-y-3">
         <div className="grid gap-3 md:grid-cols-2">
-          <Field label="起点类型">
-            <select value={props.form.sourceType} onChange={(event) => props.setForm((current) => ({ ...current, sourceType: event.target.value, sourceId: "" }))} className={inputClass}>
-              {relationEntityTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-            </select>
-          </Field>
-          <Field label="终点类型">
-            <select value={props.form.targetType} onChange={(event) => props.setForm((current) => ({ ...current, targetType: event.target.value, targetId: "" }))} className={inputClass}>
-              {relationEntityTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-            </select>
-          </Field>
-          <Field label="起点实体">
-            <select value={props.form.sourceId} onChange={(event) => props.setForm((current) => ({ ...current, sourceId: event.target.value }))} className={inputClass}>
-              <option value="">请选择</option>
-              {relationSourceOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </Field>
-          <Field label="终点实体">
-            <select value={props.form.targetId} onChange={(event) => props.setForm((current) => ({ ...current, targetId: event.target.value }))} className={inputClass}>
-              <option value="">请选择</option>
-              {relationTargetOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </Field>
-          <Field label="关系类型">
-            <select value={props.form.relationType} onChange={(event) => props.setForm((current) => ({ ...current, relationType: event.target.value }))} className={inputClass}>
-              {relationTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-            </select>
-          </Field>
-          <Field label="强度"><input value={props.form.intensity} onChange={(event) => props.setForm((current) => ({ ...current, intensity: event.target.value }))} className={inputClass} inputMode="numeric" /></Field>
+          <OptionSelect label="起点类型" value={props.form.sourceType} onValueChange={(sourceType) => setField({ sourceType, sourceId: "" })} options={relationEntityTypes} />
+          <OptionSelect label="终点类型" value={props.form.targetType} onValueChange={(targetType) => setField({ targetType, targetId: "" })} options={relationEntityTypes} />
+          <OptionSelect label="起点实体" value={props.form.sourceId} onValueChange={(sourceId) => setField({ sourceId })} options={[{ value: "", label: "请选择" }, ...relationSourceOptions]} placeholder="请选择" />
+          <OptionSelect label="终点实体" value={props.form.targetId} onValueChange={(targetId) => setField({ targetId })} options={[{ value: "", label: "请选择" }, ...relationTargetOptions]} placeholder="请选择" />
+          <OptionSelect label="关系类型" value={props.form.relationType} onValueChange={(relationType) => setField({ relationType })} options={relationTypes} />
+          {textInput("强度", props.form.intensity, (intensity) => setField({ intensity }), { inputMode: "numeric" })}
         </div>
-        <Field label="状态">
-          <select value={props.form.status} onChange={(event) => props.setForm((current) => ({ ...current, status: event.target.value }))} className={inputClass}>
-            {relationStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </Field>
-        <Field label="描述"><textarea value={props.form.description} onChange={(event) => props.setForm((current) => ({ ...current, description: event.target.value }))} className={textareaClass("min-h-28")} /></Field>
-        <Field label="附加备注"><textarea value={props.form.appendNotes} onChange={(event) => props.setForm((current) => ({ ...current, appendNotes: event.target.value }))} className={textareaClass("min-h-24")} /></Field>
-        <Field label="关键词"><input value={props.form.keywords} onChange={(event) => props.setForm((current) => ({ ...current, keywords: event.target.value }))} className={inputClass} placeholder="逗号分隔" /></Field>
+        <OptionSelect label="状态" value={props.form.status} onValueChange={(status) => setField({ status })} options={relationStatusOptions} />
+        {textArea("描述", props.form.description, (description) => setField({ description }), "min-h-28")}
+        {textArea("附加备注", props.form.appendNotes, (appendNotes) => setField({ appendNotes }), "min-h-24")}
+        {textInput("关键词", props.form.keywords, (keywords) => setField({ keywords }), { placeholder: "逗号分隔" })}
       </div>
     );
   }
@@ -184,64 +179,33 @@ export function ResourceEditorForm(props: {
     return (
       <div className="space-y-3">
         <div className="grid gap-3 md:grid-cols-2">
-          <Field label="物品名称"><input value={props.form.name} onChange={(event) => props.setForm((current) => ({ ...current, name: event.target.value }))} className={inputClass} /></Field>
-          <Field label="分类">
-            <select value={props.form.category} onChange={(event) => props.setForm((current) => ({ ...current, category: event.target.value }))} className={inputClass}>
-              {itemCategoryOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </Field>
-          <Field label="稀有度">
-            <select value={props.form.rarity} onChange={(event) => props.setForm((current) => ({ ...current, rarity: event.target.value }))} className={inputClass}>
-              <option value="">未设置</option>
-              {itemRarityOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </Field>
-          <Field label="状态">
-            <select value={props.form.status} onChange={(event) => props.setForm((current) => ({ ...current, status: event.target.value }))} className={inputClass}>
-              {itemStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </Field>
-          <Field label="归属类型">
-            <select value={props.form.ownerType} onChange={(event) => props.setForm((current) => ({ ...current, ownerType: event.target.value, ownerId: "" }))} className={inputClass}>
-              {itemOwnerTypes.map((type) => <option key={type} value={type}>{type}</option>)}
-            </select>
-          </Field>
-          <Field label="归属实体">
-            <select value={props.form.ownerId} onChange={(event) => props.setForm((current) => ({ ...current, ownerId: event.target.value }))} className={inputClass} disabled={props.form.ownerType === "none"}>
-              <option value="">未设置</option>
-              {itemOwnerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </Field>
+          {textInput("物品名称", props.form.name, (name) => setField({ name }))}
+          <OptionSelect label="分类" value={props.form.category} onValueChange={(category) => setField({ category })} options={itemCategoryOptions} />
+          <OptionSelect label="稀有度" value={props.form.rarity} onValueChange={(rarity) => setField({ rarity })} options={[{ value: "", label: "未设置" }, ...itemRarityOptions]} placeholder="未设置" />
+          <OptionSelect label="状态" value={props.form.status} onValueChange={(status) => setField({ status })} options={itemStatusOptions} />
+          <OptionSelect label="归属类型" value={props.form.ownerType} onValueChange={(ownerType) => setField({ ownerType, ownerId: "" })} options={itemOwnerTypes.map((type) => ({ value: type, label: type }))} />
+          <OptionSelect label="归属实体" value={props.form.ownerId} onValueChange={(ownerId) => setField({ ownerId })} options={[{ value: "", label: "未设置" }, ...itemOwnerOptions]} placeholder="未设置" disabled={props.form.ownerType === "none"} />
         </div>
-        <Field label="描述"><textarea value={props.form.description} onChange={(event) => props.setForm((current) => ({ ...current, description: event.target.value }))} className={textareaClass("min-h-32")} /></Field>
-        <Field label="附加备注"><textarea value={props.form.appendNotes} onChange={(event) => props.setForm((current) => ({ ...current, appendNotes: event.target.value }))} className={textareaClass("min-h-24")} /></Field>
-        <Field label="关键词"><input value={props.form.keywords} onChange={(event) => props.setForm((current) => ({ ...current, keywords: event.target.value }))} className={inputClass} placeholder="逗号分隔" /></Field>
+        {textArea("描述", props.form.description, (description) => setField({ description }), "min-h-32")}
+        {textArea("附加备注", props.form.appendNotes, (appendNotes) => setField({ appendNotes }), "min-h-24")}
+        {textInput("关键词", props.form.keywords, (keywords) => setField({ keywords }), { placeholder: "逗号分隔" })}
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <Field label="标题"><input value={props.form.title} onChange={(event) => props.setForm((current) => ({ ...current, title: event.target.value }))} className={inputClass} /></Field>
+      {textInput("标题", props.form.title, (title) => setField({ title }))}
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="钩子类型">
-          <select value={props.form.hookType} onChange={(event) => props.setForm((current) => ({ ...current, hookType: event.target.value }))} className={inputClass}>
-            <option value="">未设置</option>
-            {hookTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </Field>
-        <Field label="状态">
-          <select value={props.form.status} onChange={(event) => props.setForm((current) => ({ ...current, status: event.target.value }))} className={inputClass}>
-            {hookStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </Field>
-        <Field label="来源章节"><input value={props.form.sourceChapterNo} onChange={(event) => props.setForm((current) => ({ ...current, sourceChapterNo: event.target.value }))} className={inputClass} inputMode="numeric" /></Field>
-        <Field label="目标章节"><input value={props.form.targetChapterNo} onChange={(event) => props.setForm((current) => ({ ...current, targetChapterNo: event.target.value }))} className={inputClass} inputMode="numeric" /></Field>
-        <Field label="重要性"><input value={props.form.importance} onChange={(event) => props.setForm((current) => ({ ...current, importance: event.target.value }))} className={inputClass} /></Field>
+        <OptionSelect label="钩子类型" value={props.form.hookType} onValueChange={(hookType) => setField({ hookType })} options={[{ value: "", label: "未设置" }, ...hookTypeOptions]} placeholder="未设置" />
+        <OptionSelect label="状态" value={props.form.status} onValueChange={(status) => setField({ status })} options={hookStatusOptions} />
+        {textInput("来源章节", props.form.sourceChapterNo, (sourceChapterNo) => setField({ sourceChapterNo }), { inputMode: "numeric" })}
+        {textInput("目标章节", props.form.targetChapterNo, (targetChapterNo) => setField({ targetChapterNo }), { inputMode: "numeric" })}
+        {textInput("重要性", props.form.importance, (importance) => setField({ importance }))}
       </div>
-      <Field label="描述"><textarea value={props.form.description} onChange={(event) => props.setForm((current) => ({ ...current, description: event.target.value }))} className={textareaClass("min-h-32")} /></Field>
-      <Field label="附加备注"><textarea value={props.form.appendNotes} onChange={(event) => props.setForm((current) => ({ ...current, appendNotes: event.target.value }))} className={textareaClass("min-h-24")} /></Field>
-      <Field label="关键词"><input value={props.form.keywords} onChange={(event) => props.setForm((current) => ({ ...current, keywords: event.target.value }))} className={inputClass} placeholder="逗号分隔" /></Field>
+      {textArea("描述", props.form.description, (description) => setField({ description }), "min-h-32")}
+      {textArea("附加备注", props.form.appendNotes, (appendNotes) => setField({ appendNotes }), "min-h-24")}
+      {textInput("关键词", props.form.keywords, (keywords) => setField({ keywords }), { placeholder: "逗号分隔" })}
     </div>
   );
 }

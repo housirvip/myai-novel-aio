@@ -14,7 +14,13 @@ import {
 } from "lucide-react";
 import { NavLink, useLocation, useParams } from "react-router-dom";
 
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { listBooks } from "@/lib/books-api";
 import { queryKeys } from "@/lib/query/query-keys";
 import {
@@ -190,15 +196,22 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
 
       {/* Collapse toggle */}
       <div className="border-t border-sidebar-border px-2 py-2">
-        <button
-          type="button"
-          onClick={onToggle}
-          className="flex w-full items-center justify-center rounded-lg px-2 py-1.5 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-          aria-label={collapsed ? "展开导航栏" : "折叠导航栏"}
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          {!collapsed && <span className="ml-2">折叠侧栏</span>}
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onToggle}
+              className="w-full text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              aria-label={collapsed ? "展开导航栏" : "折叠导航栏"}
+            >
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              {!collapsed && <span className="ml-2">折叠侧栏</span>}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">{collapsed ? "展开导航栏" : "折叠导航栏"}</TooltipContent>
+        </Tooltip>
       </div>
     </aside>
   );

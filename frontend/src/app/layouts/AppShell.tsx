@@ -4,6 +4,11 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/app/auth";
 import { AppHeader } from "@/app/layouts/AppHeader";
 import { AppSidebar } from "@/app/layouts/AppSidebar";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { isTauri } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
 
@@ -42,14 +47,6 @@ export function AppShell() {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMobileMenuOpen(false);
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [mobileMenuOpen]);
 
   const isAuthRoute = location.pathname === "/app/login" || location.pathname === "/app/register";
   const isConnectRoute = location.pathname === "/app/connect";
@@ -85,18 +82,12 @@ export function AppShell() {
       </div>
 
       {/* Mobile sidebar overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="导航菜单">
-          <div
-            className="absolute inset-0 bg-black/50 animate-in fade-in-0 duration-200"
-            onClick={() => setMobileMenuOpen(false)}
-            role="presentation"
-          />
-          <div className="relative z-50 h-full w-56 animate-in slide-in-from-left duration-200">
-            <AppSidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} />
-          </div>
-        </div>
-      )}
+      <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <DialogContent className="left-0 top-0 h-full w-56 max-w-none translate-x-0 translate-y-0 rounded-none p-0 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left lg:hidden">
+          <DialogTitle className="sr-only">导航菜单</DialogTitle>
+          <AppSidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
       {/* Main area */}
       <div className="flex min-w-0 flex-1 flex-col">

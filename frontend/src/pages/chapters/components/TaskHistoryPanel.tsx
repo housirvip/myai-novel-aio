@@ -1,3 +1,11 @@
+import { useState } from "react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Progress } from "@/components/ui/progress";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import type { WorkflowTaskView } from "@/lib/types";
 import {
@@ -27,6 +35,16 @@ export function TaskHistoryPanel({
   onTerminateTask,
   terminatePending,
 }: TaskHistoryPanelProps) {
+  const [pendingTerminateTaskId, setPendingTerminateTaskId] = useState<number | null>(null);
+
+  const confirmTerminateTask = () => {
+    if (pendingTerminateTaskId === null) {
+      return;
+    }
+
+    onTerminateTask(pendingTerminateTaskId);
+    setPendingTerminateTaskId(null);
+  };
   return (
     <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
       <div className="space-y-4">
@@ -55,32 +73,35 @@ export function TaskHistoryPanel({
               const statusLabel = getWorkflowTaskStatusLabel(task.status);
               const stageLabel = getWorkflowTaskStageLabel(task.stage);
               return (
-                <button
+                <Button
                   key={task.id}
                   type="button"
+                  variant="ghost"
                   onClick={() => onSelectTask(task.id)}
-                  className={`block w-full rounded-lg border p-3 text-left text-sm transition ${
+                  className={`block h-auto w-full justify-start rounded-lg border p-3 text-left text-sm transition hover:bg-card ${
                     isSelected ? "border-primary bg-card shadow-sm" : "border-transparent bg-card text-muted-foreground"
                   }`}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="font-medium text-foreground">
-                      {getWorkflowTaskTypeLabel(task.workflowType)} · 任务 #{task.id}
-                    </div>
-                    <div className="text-xs text-muted-foreground">{new Date(task.updatedAt).toLocaleString("zh-CN")}</div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    <span>{statusLabel}</span>
-                    <span>·</span>
-                    <span>{stageLabel}</span>
-                    {task.progressPercent != null && (
-                      <>
-                        <span>·</span>
-                        <span>{task.progressPercent}%</span>
-                      </>
-                    )}
-                  </div>
-                </button>
+                  <span className="block w-full">
+                    <span className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-medium text-foreground">
+                        {getWorkflowTaskTypeLabel(task.workflowType)} · 任务 #{task.id}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{new Date(task.updatedAt).toLocaleString("zh-CN")}</span>
+                    </span>
+                    <span className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <Badge variant={getStatusBadgeVariant(task.status)}>{statusLabel}</Badge>
+                      <span>·</span>
+                      <span>{stageLabel}</span>
+                      {task.progressPercent != null && (
+                        <>
+                          <span>·</span>
+                          <span>{task.progressPercent}%</span>
+                        </>
+                      )}
+                    </span>
+                  </span>
+                </Button>
               );
             })}
           </div>
@@ -100,22 +121,18 @@ export function TaskHistoryPanel({
               {(selectedTask.status === "pending" ||
                 selectedTask.status === "running" ||
                 selectedTask.status === "terminating") && (
-                <button
+                <Button
                   type="button"
+                  variant="destructive"
                   onClick={() => {
-                    if (selectedTask.status === "terminating") {
-                      return;
+                    if (selectedTask.status !== "terminating") {
+                      setPendingTerminateTaskId(selectedTask.id);
                     }
-                    if (!window.confirm("确定终止当前任务吗？任务会在当前步骤安全结束后停止。")) {
-                      return;
-                    }
-                    onTerminateTask(selectedTask.id);
                   }}
                   disabled={selectedTask.status === "terminating" || terminatePending}
-                  className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {selectedTask.status === "terminating" ? "终止中..." : terminatePending ? "提交中..." : "终止任务"}
-                </button>
+                </Button>
               )}
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -161,34 +178,48 @@ export function TaskHistoryPanel({
             </div>
           </div>
         )}
+        <ConfirmDialog
+          open={pendingTerminateTaskId !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingTerminateTaskId(null);
+            }
+          }}
+          title="终止任务"
+          description="确定终止当前任务吗？任务会在当前步骤安全结束后停止。"
+          confirmLabel="终止任务"
+          destructive
+          pending={terminatePending}
+          onConfirm={confirmTerminateTask}
+        />
       </div>
     </div>
   );
 }
 
-function StatusCard({ card }: { card: WorkflowStatusCardViewModel }) {
-  const toneClasses =
-    card.tone === "error"
-      ? "border-destructive/20 bg-destructive/5 text-destructive"
-      : card.tone === "success"
-        ? "border-emerald-200/50 dark:border-emerald-800/30 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400"
-        : card.tone === "running"
-          ? "border-primary/20 bg-primary/5 text-primary"
-          : "border-border bg-muted text-muted-foreground";
+function getStatusBadgeVariant(status: WorkflowTaskView["status"]) {
+  if (status === "succeeded") return "success";
+  if (status === "failed" || status === "terminated") return "destructive";
+  if (status === "pending" || status === "running" || status === "terminating") return "default";
+  return "secondary";
+}
 
+function getAlertVariant(tone: WorkflowStatusCardViewModel["tone"]) {
+  if (tone === "error") return "destructive";
+  if (tone === "success") return "success";
+  return "default";
+}
+
+function StatusCard({ card }: { card: WorkflowStatusCardViewModel }) {
   return (
-    <div className={`rounded-xl border p-5 shadow-sm ${toneClasses}`}>
+    <Alert variant={getAlertVariant(card.tone)} className={card.tone === "running" ? "border-primary/20 bg-primary/5 text-primary" : undefined}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs font-medium uppercase tracking-wide opacity-80">{card.eyebrow}</div>
-          <div className="mt-1 text-lg font-semibold">{card.title}</div>
-          <div className="mt-1 text-sm opacity-90">{card.detail}</div>
+          <AlertTitle className="mt-1 text-lg">{card.title}</AlertTitle>
+          <AlertDescription className="mt-1 opacity-90">{card.detail}</AlertDescription>
         </div>
-        {card.badge && (
-          <span className="rounded-full bg-card/80 px-3 py-1 text-xs font-medium ring-1 ring-current/10">
-            {card.badge}
-          </span>
-        )}
+        {card.badge && <Badge variant={card.tone === "success" ? "success" : card.tone === "error" ? "destructive" : "secondary"}>{card.badge}</Badge>}
       </div>
       {card.progressPercent != null && (
         <div className="mt-4">
@@ -196,23 +227,18 @@ function StatusCard({ card }: { card: WorkflowStatusCardViewModel }) {
             <span>任务进度</span>
             <span>{card.progressPercent}%</span>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-current transition-all"
-              style={{ width: `${Math.max(0, Math.min(100, card.progressPercent))}%` }}
-            />
-          </div>
+          <Progress className="mt-2" value={card.progressPercent} />
         </div>
       )}
       {card.meta.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2 text-xs opacity-90">
           {card.meta.map((item) => (
-            <span key={item} className="rounded-full bg-card/80 px-3 py-1 ring-1 ring-current/10">
+            <Badge key={item} variant="secondary">
               {item}
-            </span>
+            </Badge>
           ))}
         </div>
       )}
-    </div>
+    </Alert>
   );
 }

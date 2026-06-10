@@ -34,6 +34,10 @@ import {
   buildResourceFormFromItem,
   type EditableResourceKey,
 } from "@/components/resources/resource-editor-shared";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { getChapter, listChapters } from "@/lib/chapters-api";
 import { queryKeys } from "@/lib/query/query-keys";
 import { chapterWorkbenchPath, parseBookId, parseChapterNo } from "@/lib/routes";
@@ -46,6 +50,8 @@ function formatActionLabel(action: string) {
 function getStageWordCount(content: string) {
   return content.replace(/\s+/g, "").length;
 }
+
+type PendingConfirm = { kind: "tab"; tab: StageTab } | { kind: "chapter"; chapterNo: number } | { kind: "rerun-plan" } | null;
 
 export function ChapterWorkbenchPage() {
   const params = useParams();
@@ -75,6 +81,7 @@ export function ChapterWorkbenchPage() {
     }
   }, [searchParams]);
   const [selectedWorkflowTaskId, setSelectedWorkflowTaskId] = useState<number | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm>(null);
 
   // ── Core queries ──────────────────────────────────────────────────
   const chapterQuery = useQuery({
@@ -292,7 +299,8 @@ export function ChapterWorkbenchPage() {
       return;
     }
 
-    if (editor.isDirty && !window.confirm("当前阶段内容尚未保存，确定切换标签吗？")) {
+    if (editor.isDirty) {
+      setPendingConfirm({ kind: "tab", tab: nextTab });
       return;
     }
 
@@ -304,7 +312,8 @@ export function ChapterWorkbenchPage() {
       return;
     }
 
-    if (editor.isDirty && !window.confirm("当前阶段内容尚未保存，确定切换到其他章节吗？")) {
+    if (editor.isDirty) {
+      setPendingConfirm({ kind: "chapter", chapterNo: targetChapterNo });
       return;
     }
 
@@ -460,15 +469,60 @@ export function ChapterWorkbenchPage() {
     workflow.setPlanIntentDialogMode("initial");
   };
 
-  const rerunPlan = () => {
-    if (editor.isDirty && !window.confirm("当前 plan 尚未保存，确定重新 plan 吗？")) {
-      return;
-    }
-
+  const openReplanDialog = () => {
     workflow.generateAuthorIntentMutation.reset();
     workflow.setPlanIntentDraft("");
     workflow.setPlanIntentDialogMode("replan");
   };
+
+  const rerunPlan = () => {
+    if (editor.isDirty) {
+      setPendingConfirm({ kind: "rerun-plan" });
+      return;
+    }
+
+    openReplanDialog();
+  };
+
+  const confirmPendingAction = () => {
+    const pending = pendingConfirm;
+    if (!pending) {
+      return;
+    }
+
+    if (pending.kind === "tab") {
+      setActiveTab(pending.tab);
+    } else if (pending.kind === "chapter") {
+      navigate(chapterWorkbenchPath(safeBookId, pending.chapterNo));
+    } else {
+      openReplanDialog();
+    }
+
+    setPendingConfirm(null);
+  };
+
+  const pendingConfirmCopy = pendingConfirm?.kind === "tab"
+    ? {
+        title: "切换标签",
+        description: "当前阶段内容尚未保存，确定切换标签吗？",
+        confirmLabel: "切换",
+        destructive: false,
+      }
+    : pendingConfirm?.kind === "chapter"
+      ? {
+          title: "切换章节",
+          description: "当前阶段内容尚未保存，确定切换到其他章节吗？",
+          confirmLabel: "切换",
+          destructive: false,
+        }
+      : pendingConfirm?.kind === "rerun-plan"
+        ? {
+            title: "重新 plan",
+            description: "当前 plan 尚未保存，确定重新 plan 吗？",
+            confirmLabel: "重新 plan",
+            destructive: true,
+          }
+        : null;
 
   const confirmPlanIntent = () => {
     if (!workflow.planIntentDialogMode) {
@@ -505,20 +559,26 @@ export function ChapterWorkbenchPage() {
         <div className="rounded-lg bg-muted p-4">
           <div className="text-sm font-medium text-foreground">章节切换</div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => navigateToChapter(previousChapter?.chapterNo)}
               disabled={!previousChapter}
-              className="rounded-lg bg-card px-3 py-2 text-xs font-medium text-muted-foreground disabled:opacity-40"
+              className="justify-center text-muted-foreground"
             >
               {previousChapter ? `上一章 · ${previousChapter.chapterNo}` : "没有上一章"}
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => navigateToChapter(nextChapter?.chapterNo)}
               disabled={!nextChapter}
-              className="rounded-lg bg-card px-3 py-2 text-xs font-medium text-muted-foreground disabled:opacity-40"
+              className="justify-center text-muted-foreground"
             >
               {nextChapter ? `下一章 · ${nextChapter.chapterNo}` : "没有下一章"}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -558,20 +618,12 @@ export function ChapterWorkbenchPage() {
             ))}
           </div>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              onClick={clearWorkflowModelOverrides}
-              className="whitespace-nowrap rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground"
-            >
+            <Button type="button" variant="secondary" size="sm" onClick={clearWorkflowModelOverrides}>
               清除模型覆盖
-            </button>
-            <button
-              type="button"
-              onClick={openWorkflowSettingsDialog}
-              className="whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-            >
+            </Button>
+            <Button type="button" size="sm" onClick={openWorkflowSettingsDialog}>
               修改
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -582,12 +634,9 @@ export function ChapterWorkbenchPage() {
               <div className="text-sm font-medium text-foreground">manualEntityRefs 选择器</div>
               <div className="mt-1 text-xs text-muted-foreground">进入章节时会默认勾选当前已关联资源；plan 检索会优先带上这里当前勾选的资源。</div>
             </div>
-            <button
-              onClick={() => resources.setManualEntityRefs(emptyManualEntityRefs)}
-              className="shrink-0 whitespace-nowrap rounded-lg bg-card px-3 py-1 text-xs text-muted-foreground"
-            >
+            <Button type="button" variant="secondary" size="sm" onClick={() => resources.setManualEntityRefs(emptyManualEntityRefs)} className="shrink-0">
               清空
-            </button>
+            </Button>
           </div>
 
           <div className="mt-3 space-y-3">
@@ -638,7 +687,7 @@ export function ChapterWorkbenchPage() {
       </aside>
 
       {/* ── Main content ── */}
-      <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+      <Card className="space-y-4 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Stage 工作区</h2>
@@ -667,33 +716,33 @@ export function ChapterWorkbenchPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 px-1">
                 <div className="text-xs text-muted-foreground">阶段摘要（可选）</div>
                 {editor.stageIsEditable && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => editor.generateStageSummaryMutation.mutate()}
                     disabled={editor.generateStageSummaryMutation.isPending || !editor.editorContent.trim() || workflow.isAnyWorkflowBusy}
-                    className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary disabled:opacity-60"
+                    className="border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
                   >
                     {editor.generateStageSummaryMutation.isPending ? "生成摘要中..." : "AI 生成摘要"}
-                  </button>
+                  </Button>
                 )}
               </div>
-              <textarea
+              <Textarea
                 value={editor.editorSummary}
                 onChange={(event) => editor.setEditorSummary(event.target.value)}
                 disabled={!editor.stageIsEditable}
                 placeholder="阶段摘要（可选）"
-                className="min-h-24 w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none ring-0 focus:border-primary disabled:bg-muted disabled:text-muted-foreground"
+                className="min-h-24 bg-card"
               />
             </div>
             <div className="relative">
-              <textarea
+              <Textarea
                 value={editor.editorContent}
                 onChange={(event) => editor.setEditorContent(event.target.value)}
                 disabled={!editor.stageIsEditable}
                 placeholder="阶段正文内容"
-                className={`min-h-[420px] w-full rounded-xl border border-border bg-card px-5 py-4 text-base leading-[1.85] outline-none ring-0 focus:border-primary disabled:bg-muted disabled:text-muted-foreground ${
-                  `text-foreground ${isContentStage ? "font-serif" : ""}`
-                }`}
+                className={`min-h-[420px] bg-card px-5 py-4 text-base leading-[1.85] ${isContentStage ? "font-serif" : ""}`}
               />
               <div className="flex items-center justify-between rounded-b-xl border-x border-b border-border bg-muted px-4 py-1.5 -mt-2 text-[11px] text-muted-foreground">
                 <span>字数：{editorWordCount}</span>
@@ -755,8 +804,23 @@ export function ChapterWorkbenchPage() {
             terminatePending={workflow.terminateWorkflowTaskMutation.isPending}
           />
         )}
-      </div>
+      </Card>
 
+      {pendingConfirmCopy && (
+        <ConfirmDialog
+          open={pendingConfirm !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingConfirm(null);
+            }
+          }}
+          title={pendingConfirmCopy.title}
+          description={pendingConfirmCopy.description}
+          confirmLabel={pendingConfirmCopy.confirmLabel}
+          destructive={pendingConfirmCopy.destructive}
+          onConfirm={confirmPendingAction}
+        />
+      )}
       <VersionDiffDialog
         open={versionHistory.historyDiffDialogOpen}
         diffPreview={comparisonDiffPreview}

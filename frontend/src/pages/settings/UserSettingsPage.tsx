@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatApiErrorMessage } from "@/lib/api";
 import { clearUserRuntimeSettings, getUserRuntimeSettings, updateUserRuntimeSettings } from "@/lib/user-settings-api";
@@ -137,7 +144,7 @@ export function UserSettingsPage() {
   const serverDefaults = settingsQuery.data?.serverDefaults;
   const capabilities = settingsQuery.data?.capabilities;
 
-  const inputClass = "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary";
+  const providerOptions = ["mock", "openai", "anthropic", "custom"] as const;
 
   return (
     <section className="space-y-6">
@@ -149,93 +156,92 @@ export function UserSettingsPage() {
       </div>
 
       {(settingsQuery.isError || saveMutation.isError || clearMutation.isError) && (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {formatApiErrorMessage(
-            settingsQuery.error ?? saveMutation.error ?? clearMutation.error,
-            "加载或保存个人配置失败",
-          )}
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>
+            {formatApiErrorMessage(
+              settingsQuery.error ?? saveMutation.error ?? clearMutation.error,
+              "加载或保存个人配置失败",
+            )}
+          </AlertDescription>
+        </Alert>
       )}
 
       <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <Card className="p-6">
           <h3 className="text-lg font-semibold text-foreground">默认参数</h3>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <label className="text-sm text-muted-foreground">
-              <div className="mb-2 text-xs text-muted-foreground">默认 Provider</div>
-              <select
+            <Field label="默认 Provider">
+              <Select
                 value={form.llmProvider}
-                onChange={(event) => setForm((current) => ({ ...current, llmProvider: event.target.value as UserSettingsFormState["llmProvider"] }))}
-                className={inputClass}
+                onValueChange={(value) => setForm((current) => ({ ...current, llmProvider: value as UserSettingsFormState["llmProvider"] }))}
               >
-                <option value="mock">mock</option>
-                <option value="openai">openai</option>
-                <option value="anthropic">anthropic</option>
-                <option value="custom">custom</option>
-              </select>
-            </label>
-            <label className="text-sm text-muted-foreground">
-              <div className="mb-2 text-xs text-muted-foreground">通用模型</div>
-              <input value={form.llmModel} onChange={(event) => setForm((current) => ({ ...current, llmModel: event.target.value }))} className={inputClass} placeholder={formatOverridePlaceholder(settingsQuery.data?.overrides.model, serverDefaults?.model)} />
-            </label>
-            <label className="text-sm text-muted-foreground">
-              <div className="mb-2 text-xs text-muted-foreground">Low 模型</div>
-              <input value={form.llmLowModel} onChange={(event) => setForm((current) => ({ ...current, llmLowModel: event.target.value }))} className={inputClass} placeholder={formatOverridePlaceholder(settingsQuery.data?.overrides.lowModel, serverDefaults?.lowModel)} />
-            </label>
-            <label className="text-sm text-muted-foreground">
-              <div className="mb-2 text-xs text-muted-foreground">Mid 模型</div>
-              <input value={form.llmMidModel} onChange={(event) => setForm((current) => ({ ...current, llmMidModel: event.target.value }))} className={inputClass} placeholder={formatOverridePlaceholder(settingsQuery.data?.overrides.midModel, serverDefaults?.midModel)} />
-            </label>
-            <label className="text-sm text-muted-foreground">
-              <div className="mb-2 text-xs text-muted-foreground">High 模型</div>
-              <input value={form.llmHighModel} onChange={(event) => setForm((current) => ({ ...current, llmHighModel: event.target.value }))} className={inputClass} placeholder={formatOverridePlaceholder(settingsQuery.data?.overrides.highModel, serverDefaults?.highModel)} />
-            </label>
-            <label className="text-sm text-muted-foreground">
-              <div className="mb-2 text-xs text-muted-foreground">默认 Max Tokens</div>
-              <input value={form.llmDefaultMaxTokens} onChange={(event) => setForm((current) => ({ ...current, llmDefaultMaxTokens: event.target.value }))} className={inputClass} placeholder={formatOverridePlaceholder(settingsQuery.data?.overrides.defaultMaxTokens, serverDefaults?.defaultMaxTokens)} />
-            </label>
+                <SelectTrigger aria-label="默认 Provider">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {providerOptions.map((provider) => (
+                    <SelectItem key={provider} value={provider}>{provider}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="通用模型">
+              <Input value={form.llmModel} onChange={(event) => setForm((current) => ({ ...current, llmModel: event.target.value }))} placeholder={formatOverridePlaceholder(settingsQuery.data?.overrides.model, serverDefaults?.model)} />
+            </Field>
+            <Field label="Low 模型">
+              <Input value={form.llmLowModel} onChange={(event) => setForm((current) => ({ ...current, llmLowModel: event.target.value }))} placeholder={formatOverridePlaceholder(settingsQuery.data?.overrides.lowModel, serverDefaults?.lowModel)} />
+            </Field>
+            <Field label="Mid 模型">
+              <Input value={form.llmMidModel} onChange={(event) => setForm((current) => ({ ...current, llmMidModel: event.target.value }))} placeholder={formatOverridePlaceholder(settingsQuery.data?.overrides.midModel, serverDefaults?.midModel)} />
+            </Field>
+            <Field label="High 模型">
+              <Input value={form.llmHighModel} onChange={(event) => setForm((current) => ({ ...current, llmHighModel: event.target.value }))} placeholder={formatOverridePlaceholder(settingsQuery.data?.overrides.highModel, serverDefaults?.highModel)} />
+            </Field>
+            <Field label="默认 Max Tokens">
+              <Input value={form.llmDefaultMaxTokens} onChange={(event) => setForm((current) => ({ ...current, llmDefaultMaxTokens: event.target.value }))} placeholder={formatOverridePlaceholder(settingsQuery.data?.overrides.defaultMaxTokens, serverDefaults?.defaultMaxTokens)} />
+            </Field>
           </div>
 
           <h3 className="mt-8 text-lg font-semibold text-foreground">Provider 连接配置</h3>
           <div className="mt-4 space-y-5">
-            <div className="rounded-lg border border-border bg-muted p-4">
+            <Card className="bg-muted p-4 shadow-none">
               <div className="font-medium text-foreground">OpenAI</div>
               <div className="mt-1 text-xs text-muted-foreground">API Key 保存后仅显示掩码，不会明文回显。</div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <input value={form.openaiApiKey} onChange={(event) => setForm((current) => ({ ...current, openaiApiKey: event.target.value }))} className={inputClass} placeholder="输入新 API Key 留空则保持原值" />
-                <input value={form.openaiBaseUrl} onChange={(event) => setForm((current) => ({ ...current, openaiBaseUrl: event.target.value }))} className={inputClass} placeholder="Base URL" />
+                <Input value={form.openaiApiKey} onChange={(event) => setForm((current) => ({ ...current, openaiApiKey: event.target.value }))} placeholder="输入新 API Key 留空则保持原值" />
+                <Input value={form.openaiBaseUrl} onChange={(event) => setForm((current) => ({ ...current, openaiBaseUrl: event.target.value }))} placeholder="Base URL" />
               </div>
-            </div>
+            </Card>
 
-            <div className="rounded-lg border border-border bg-muted p-4">
+            <Card className="bg-muted p-4 shadow-none">
               <div className="font-medium text-foreground">Anthropic</div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <input value={form.anthropicApiKey} onChange={(event) => setForm((current) => ({ ...current, anthropicApiKey: event.target.value }))} className={inputClass} placeholder="输入新 API Key 留空则保持原值" />
-                <input value={form.anthropicBaseUrl} onChange={(event) => setForm((current) => ({ ...current, anthropicBaseUrl: event.target.value }))} className={inputClass} placeholder="Base URL" />
+                <Input value={form.anthropicApiKey} onChange={(event) => setForm((current) => ({ ...current, anthropicApiKey: event.target.value }))} placeholder="输入新 API Key 留空则保持原值" />
+                <Input value={form.anthropicBaseUrl} onChange={(event) => setForm((current) => ({ ...current, anthropicBaseUrl: event.target.value }))} placeholder="Base URL" />
               </div>
-            </div>
+            </Card>
 
-            <div className="rounded-lg border border-border bg-muted p-4">
+            <Card className="bg-muted p-4 shadow-none">
               <div className="font-medium text-foreground">Custom</div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <input value={form.customLlmApiKey} onChange={(event) => setForm((current) => ({ ...current, customLlmApiKey: event.target.value }))} className={inputClass} placeholder="可选 API Key" />
-                <input value={form.customLlmBaseUrl} onChange={(event) => setForm((current) => ({ ...current, customLlmBaseUrl: event.target.value }))} className={inputClass} placeholder="Base URL" />
+                <Input value={form.customLlmApiKey} onChange={(event) => setForm((current) => ({ ...current, customLlmApiKey: event.target.value }))} placeholder="可选 API Key" />
+                <Input value={form.customLlmBaseUrl} onChange={(event) => setForm((current) => ({ ...current, customLlmBaseUrl: event.target.value }))} placeholder="Base URL" />
               </div>
-            </div>
+            </Card>
           </div>
 
           <div className="mt-6 flex flex-wrap justify-end gap-3">
-            <button type="button" onClick={() => clearMutation.mutate()} className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground" disabled={clearMutation.isPending || saveMutation.isPending}>
+            <Button type="button" variant="secondary" onClick={() => clearMutation.mutate()} disabled={clearMutation.isPending || saveMutation.isPending}>
               清空个人覆盖
-            </button>
-            <button type="button" onClick={handleSave} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground" disabled={saveMutation.isPending || clearMutation.isPending || settingsQuery.isLoading}>
+            </Button>
+            <Button type="button" onClick={handleSave} disabled={saveMutation.isPending || clearMutation.isPending || settingsQuery.isLoading}>
               {saveMutation.isPending ? "保存中..." : "保存个人配置"}
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
 
         <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <Card className="p-6">
             <h3 className="text-lg font-semibold text-foreground">Server Default</h3>
             {settingsQuery.isLoading ? (
               <div className="mt-4 space-y-2">
@@ -258,11 +264,11 @@ export function UserSettingsPage() {
                 ))}
               </div>
             ) : (
-              <div className="mt-4 text-sm text-amber-700 dark:text-amber-400">当前后端还没有返回 Server Default，请重启后端服务后刷新页面。</div>
+              <Alert variant="warning" className="mt-4"><AlertDescription>当前后端还没有返回 Server Default，请重启后端服务后刷新页面。</AlertDescription></Alert>
             )}
-          </div>
+          </Card>
 
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <Card className="p-6">
             <h3 className="text-lg font-semibold text-foreground">当前生效值</h3>
             {effective ? (
               <div className="mt-4 space-y-3 text-sm text-muted-foreground">
@@ -290,17 +296,17 @@ export function UserSettingsPage() {
                 <Skeleton className="h-4 w-2/3" />
               </div>
             )}
-          </div>
+          </Card>
 
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <Card className="p-6">
             <h3 className="text-lg font-semibold text-foreground">Provider 可用性</h3>
             <div className="mt-4 space-y-2 text-sm text-muted-foreground">
               {capabilities ? capabilities.allowedProviders.map((provider) => (
                 <div key={provider} className="flex items-center justify-between rounded-lg bg-muted px-4 py-3">
                   <span>{provider}</span>
-                  <span className={capabilities.providerAvailability[provider] ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}>
+                  <Badge variant={capabilities.providerAvailability[provider] ? "success" : "warning"}>
                     {capabilities.providerAvailability[provider] ? "可用" : "缺少配置"}
-                  </span>
+                  </Badge>
                 </div>
               )) : (
                 <div className="space-y-2">
@@ -310,7 +316,7 @@ export function UserSettingsPage() {
                 </div>
               )}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </section>

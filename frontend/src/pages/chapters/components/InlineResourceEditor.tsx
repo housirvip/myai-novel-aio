@@ -1,4 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { ResourceEditorForm } from "@/components/resources/ResourceEditorForm";
 import {
@@ -25,23 +27,21 @@ export function InlineResourceEditor(props: {
   const primaryFieldValue = getResourcePrimaryFieldValue(props.resourceType, props.form);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-background/80 backdrop-blur-sm px-4 py-16 sm:pt-20" onClick={props.onClose}>
-      <div role="dialog" aria-modal="true" aria-labelledby="resource-editor-dialog-title" className="w-full max-w-3xl rounded-xl border border-border bg-card p-6 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200" onClick={(event) => event.stopPropagation()}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 id="resource-editor-dialog-title" className="text-lg font-semibold text-foreground">修改实体</h3>
-            <p className="mt-1 text-sm text-muted-foreground">保存后会刷新当前选择器列表与已选摘要。</p>
+    <Dialog open onOpenChange={(open) => { if (!open) props.onClose(); }}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <div className="flex flex-wrap items-start justify-between gap-3 pr-8">
+            <div>
+              <DialogTitle>修改实体</DialogTitle>
+              <DialogDescription className="mt-1">保存后会刷新当前选择器列表与已选摘要。</DialogDescription>
+            </div>
+            <Button type="button" variant="secondary" onClick={props.onClose}>
+              关闭
+            </Button>
           </div>
-          <button
-            type="button"
-            onClick={props.onClose}
-            className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground"
-          >
-            关闭
-          </button>
-        </div>
+        </DialogHeader>
 
-        <div className="mt-4 max-h-[70vh] overflow-y-auto rounded-lg bg-muted p-4">
+        <div className="max-h-[70vh] overflow-y-auto rounded-lg bg-muted p-4">
           <ResourceEditorForm
             resourceType={props.resourceType}
             form={props.form}
@@ -50,31 +50,25 @@ export function InlineResourceEditor(props: {
           />
         </div>
 
-        <div className="mt-4 rounded-lg bg-muted p-4 text-xs leading-6 text-muted-foreground">
+        <div className="rounded-lg bg-muted p-4 text-xs leading-6 text-muted-foreground">
           {props.saveError
             ? formatApiErrorMessage(props.saveError, "资源保存失败")
             : validationMessage ?? "可以直接在这里快捷修改当前实体，无需离开章节工作台。"}
         </div>
 
-        <div className="mt-5 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={props.onClose}
-            disabled={props.isSaving}
-            className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground disabled:opacity-60"
-          >
+        <DialogFooter>
+          <Button type="button" variant="secondary" onClick={props.onClose} disabled={props.isSaving}>
             取消
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={props.onSave}
             disabled={props.isSaving || !primaryFieldValue.trim() || validationMessage !== null}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
           >
             {props.isSaving ? "保存中..." : "保存修改"}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
