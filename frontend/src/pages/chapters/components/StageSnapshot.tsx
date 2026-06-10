@@ -1,3 +1,5 @@
+import { Clock, Hash, Layers } from "lucide-react";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChapterStageView } from "@/lib/types";
 
@@ -33,19 +35,28 @@ export function StageSnapshot({ stageData, stageKey: _stageKey, wordCount, isLoa
           <Skeleton className="h-16 rounded-lg" />
         </div>
       )}
-      {isError && <div className="mt-4 text-sm text-amber-700">当前阶段还没有可读取内容，或接口返回了错误。</div>}
+      {isError && <div className="mt-4 text-sm text-warning">当前阶段还没有可读取内容，或接口返回了错误。</div>}
       {stageData && (
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div className="rounded-lg bg-muted p-4 ring-1 ring-border">
-            <div className="text-xs text-muted-foreground">当前阶段</div>
+          <div className="stat-card-primary">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Layers className="h-3.5 w-3.5 text-primary" />
+              当前阶段
+            </div>
             <div className="mt-1 text-sm font-semibold text-foreground">{stageData.metadata.stage}</div>
           </div>
-          <div className="rounded-lg bg-muted p-4 ring-1 ring-border">
-            <div className="text-xs text-muted-foreground">当前字数</div>
+          <div className="stat-card-accent">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Hash className="h-3.5 w-3.5 text-accent" />
+              当前字数
+            </div>
             <div className="mt-1 text-sm font-semibold text-foreground">{wordCount ?? "—"}</div>
           </div>
-          <div className="rounded-lg bg-muted p-4 ring-1 ring-border">
-            <div className="text-xs text-muted-foreground">最后更新</div>
+          <div className="stat-card">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              最后更新
+            </div>
             <div className="mt-1 text-sm font-semibold text-foreground">
               {new Date(stageData.metadata.updatedAt ?? Date.now()).toLocaleString("zh-CN")}
             </div>

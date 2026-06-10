@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import type { StageTab, WorkflowAction } from "../hooks/types";
 import type { ChapterStage } from "@/lib/types";
 
@@ -52,71 +53,71 @@ export function StageActionBar({
       </div>
       <div className="flex flex-wrap gap-2">
         {activeTab === "plan" && availableActions.includes("plan") && (
-          <button
+          <Button
             onClick={onOpenInitialPlanDialog}
             disabled={isAnyWorkflowBusy}
-            className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-60"
+            className="bg-foreground text-background hover:bg-foreground/90 hover:shadow-none hover:brightness-100"
           >
             {workflowMutationPending && workflowMutationAction === "plan" ? "生成 plan 中..." : activeWorkflowTaskType === "plan" ? "plan 执行中..." : "生成 plan"}
-          </button>
+          </Button>
         )}
         {activeTab === "plan" && (
-          <button
+          <Button
             onClick={() => onStartWorkflow({ action: "draft" })}
             disabled={!availableActions.includes("draft") || isAnyWorkflowBusy}
-            className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-60"
+            className="bg-foreground text-background hover:bg-foreground/90 hover:shadow-none hover:brightness-100"
           >
             {workflowMutationPending && workflowMutationAction === "draft" ? "生成 draft 中..." : activeWorkflowTaskType === "draft" ? "draft 执行中..." : "生成 draft"}
-          </button>
+          </Button>
         )}
         {activeTab === "draft" && (
-          <button
+          <Button
             onClick={() => onStartWorkflow({ action: "review" })}
             disabled={!availableActions.includes("review") || isAnyWorkflowBusy}
-            className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-60"
+            className="bg-foreground text-background hover:bg-foreground/90 hover:shadow-none hover:brightness-100"
           >
             {workflowMutationPending && workflowMutationAction === "review" ? "生成 review 中..." : activeWorkflowTaskType === "review" ? "review 执行中..." : "生成 review"}
-          </button>
+          </Button>
         )}
         {activeTab === "review" && (
-          <button
+          <Button
             onClick={() => onStartWorkflow({ action: "repair" })}
             disabled={!availableActions.includes("repair") || isAnyWorkflowBusy}
-            className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-60"
+            className="bg-foreground text-background hover:bg-foreground/90 hover:shadow-none hover:brightness-100"
           >
             {workflowMutationPending && workflowMutationAction === "repair" ? "生成 repair 中..." : activeWorkflowTaskType === "repair" ? "repair 执行中..." : "生成 repair"}
-          </button>
+          </Button>
         )}
         {activeTab === "review" && (
-          <button
+          <Button
             onClick={() => onStartWorkflow({ action: "approve" })}
             disabled={!availableActions.includes("approve") || isAnyWorkflowBusy}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white dark:bg-emerald-500 disabled:opacity-60"
+            className="bg-success text-primary-foreground hover:bg-success/90 hover:shadow-none hover:brightness-100"
           >
             {workflowMutationPending && workflowMutationAction === "approve"
               ? "批准中..."
               : activeWorkflowTaskType === "approve"
                 ? "approve 执行中..."
                 : "批准成稿"}
-          </button>
+          </Button>
         )}
         {activeTab === "plan" && (
-          <button
+          <Button
+            variant="ghost"
             onClick={onRerunPlan}
             disabled={isAnyWorkflowBusy}
-            className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive disabled:opacity-60"
+            className="border border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
             {workflowMutationPending && workflowMutationAction === "plan" ? "重新 plan 中..." : activeWorkflowTaskType === "plan" ? "plan 执行中..." : "重新 plan"}
-          </button>
+          </Button>
         )}
         {stageIsEditable && (
-          <button
+          <Button
             onClick={onSaveStage}
             disabled={saveStageMutationPending || editorContentEmpty || isAnyWorkflowBusy || !isDirty}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
           >
             {saveStageMutationPending ? "保存中..." : `保存 ${activeStageKey}`}
-          </button>
+          </Button>
         )}
       </div>
     </div>

@@ -30,6 +30,10 @@ import {
   type ChapterWorkbenchLocationState,
 } from "./hooks";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import {
   buildResourceFormFromItem,
   type EditableResourceKey,
@@ -498,27 +502,30 @@ export function ChapterWorkbenchPage() {
   return (
     <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
       {/* ── Sidebar ── */}
-      <aside className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+      <aside>
+      <Card className="space-y-4 p-5">
         <h2 className="text-lg font-semibold text-foreground">章节与上下文</h2>
 
         {/* Chapter navigation */}
         <div className="rounded-lg bg-muted p-4">
           <div className="text-sm font-medium text-foreground">章节切换</div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => navigateToChapter(previousChapter?.chapterNo)}
               disabled={!previousChapter}
-              className="rounded-lg bg-card px-3 py-2 text-xs font-medium text-muted-foreground disabled:opacity-40"
             >
               {previousChapter ? `上一章 · ${previousChapter.chapterNo}` : "没有上一章"}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => navigateToChapter(nextChapter?.chapterNo)}
               disabled={!nextChapter}
-              className="rounded-lg bg-card px-3 py-2 text-xs font-medium text-muted-foreground disabled:opacity-40"
             >
               {nextChapter ? `下一章 · ${nextChapter.chapterNo}` : "没有下一章"}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -530,9 +537,9 @@ export function ChapterWorkbenchPage() {
           <div className="mt-2 text-xs text-muted-foreground">状态：{workflow.workflowStateQuery.data?.status ?? chapterQuery.data?.status ?? "加载中"}</div>
           <div className="mt-2 flex flex-wrap gap-2">
             {availableActions.map((action) => (
-              <span key={action} className="rounded-full bg-primary/10 px-2 py-1 text-[11px] text-primary">
+              <Badge key={action} variant="outline" className="text-primary text-[11px]">
                 {formatActionLabel(action)}
-              </span>
+              </Badge>
             ))}
           </div>
         </div>
@@ -558,20 +565,21 @@ export function ChapterWorkbenchPage() {
             ))}
           </div>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               type="button"
               onClick={clearWorkflowModelOverrides}
-              className="whitespace-nowrap rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground"
             >
               清除模型覆盖
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
               type="button"
               onClick={openWorkflowSettingsDialog}
-              className="whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
             >
               修改
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -582,12 +590,13 @@ export function ChapterWorkbenchPage() {
               <div className="text-sm font-medium text-foreground">manualEntityRefs 选择器</div>
               <div className="mt-1 text-xs text-muted-foreground">进入章节时会默认勾选当前已关联资源；plan 检索会优先带上这里当前勾选的资源。</div>
             </div>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => resources.setManualEntityRefs(emptyManualEntityRefs)}
-              className="shrink-0 whitespace-nowrap rounded-lg bg-card px-3 py-1 text-xs text-muted-foreground"
             >
               清空
-            </button>
+            </Button>
           </div>
 
           <div className="mt-3 space-y-3">
@@ -635,10 +644,11 @@ export function ChapterWorkbenchPage() {
             />
           </div>
         </div>
+      </Card>
       </aside>
 
       {/* ── Main content ── */}
-      <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+      <Card className="space-y-4 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Stage 工作区</h2>
@@ -667,33 +677,32 @@ export function ChapterWorkbenchPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 px-1">
                 <div className="text-xs text-muted-foreground">阶段摘要（可选）</div>
                 {editor.stageIsEditable && (
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     type="button"
                     onClick={() => editor.generateStageSummaryMutation.mutate()}
                     disabled={editor.generateStageSummaryMutation.isPending || !editor.editorContent.trim() || workflow.isAnyWorkflowBusy}
-                    className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary disabled:opacity-60"
                   >
                     {editor.generateStageSummaryMutation.isPending ? "生成摘要中..." : "AI 生成摘要"}
-                  </button>
+                  </Button>
                 )}
               </div>
-              <textarea
+              <Textarea
+                className="min-h-24 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
                 value={editor.editorSummary}
                 onChange={(event) => editor.setEditorSummary(event.target.value)}
                 disabled={!editor.stageIsEditable}
                 placeholder="阶段摘要（可选）"
-                className="min-h-24 w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none ring-0 focus:border-primary disabled:bg-muted disabled:text-muted-foreground"
               />
             </div>
             <div className="relative">
-              <textarea
+              <Textarea
+                className={`min-h-[420px] text-base leading-[1.85] disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 ${isContentStage ? "font-serif" : ""}`}
                 value={editor.editorContent}
                 onChange={(event) => editor.setEditorContent(event.target.value)}
                 disabled={!editor.stageIsEditable}
                 placeholder="阶段正文内容"
-                className={`min-h-[420px] w-full rounded-xl border border-border bg-card px-5 py-4 text-base leading-[1.85] outline-none ring-0 focus:border-primary disabled:bg-muted disabled:text-muted-foreground ${
-                  `text-foreground ${isContentStage ? "font-serif" : ""}`
-                }`}
               />
               <div className="flex items-center justify-between rounded-b-xl border-x border-b border-border bg-muted px-4 py-1.5 -mt-2 text-[11px] text-muted-foreground">
                 <span>字数：{editorWordCount}</span>
@@ -755,7 +764,7 @@ export function ChapterWorkbenchPage() {
             terminatePending={workflow.terminateWorkflowTaskMutation.isPending}
           />
         )}
-      </div>
+      </Card>
 
       <VersionDiffDialog
         open={versionHistory.historyDiffDialogOpen}

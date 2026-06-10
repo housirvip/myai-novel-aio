@@ -41,7 +41,7 @@ export function VersionDiffDialog({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-100 dark:ring-emerald-800/30">
+            <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success ring-1 ring-success/20">
               {diffPreview.summary}
             </span>
             <button
@@ -56,8 +56,8 @@ export function VersionDiffDialog({
 
         <div className="mt-4 max-h-[70vh] overflow-y-auto rounded-lg border border-border bg-muted p-5 shadow-sm">
           <div className="grid gap-4 text-sm text-foreground lg:grid-cols-2">
-            <div className="rounded-lg bg-card p-4 ring-1 ring-emerald-200/50 dark:ring-emerald-800/30">
-              <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+            <div className="rounded-lg bg-card p-4 ring-1 ring-success/20">
+              <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-success">
                 新增内容
               </div>
               <div className="space-y-2">
@@ -65,7 +65,7 @@ export function VersionDiffDialog({
                   diffPreview.addedLines.map((line) => (
                     <div
                       key={`add-${line}`}
-                      className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-100 dark:ring-emerald-800/30"
+                      className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success ring-1 ring-success/20"
                     >
                       + {line}
                     </div>

@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Library } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatApiErrorMessage } from "@/lib/api";
 import { createBook, listBooks } from "@/lib/books-api";
@@ -32,24 +37,26 @@ export function BooksPage() {
           <h2 className="text-2xl font-semibold text-foreground">书籍总览</h2>
           <p className="mt-1 text-sm text-muted-foreground">从这里进入你的作品、章节工作台和成稿阅读区。</p>
         </div>
-        <button
+        <Button
           onClick={() => createBookMutation.mutate()}
           disabled={createBookMutation.isPending}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-glow disabled:opacity-60"
+          className="shadow-glow"
         >
           {createBookMutation.isPending ? "创建中..." : "快速新建书籍"}
-        </button>
+        </Button>
       </div>
 
       {createBookMutation.isError && (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {formatApiErrorMessage(createBookMutation.error, "创建书籍失败")}
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>
+            {formatApiErrorMessage(createBookMutation.error, "创建书籍失败")}
+          </AlertDescription>
+        </Alert>
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {booksQuery.isLoading && Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <Card key={index} className="p-5">
               <Skeleton className="h-28 rounded-lg" />
               <div className="mt-4 space-y-3">
                 <Skeleton className="h-5 w-2/3" />
@@ -59,16 +66,21 @@ export function BooksPage() {
                   <Skeleton className="h-6 w-24 rounded-full" />
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
 
           {booksQuery.data?.map((book) => (
             <Link
               key={book.id}
               to={`/app/books/${book.id}`}
-              className="rounded-xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="cursor-pointer"
             >
-              <div className="h-28 rounded-lg bg-gradient-to-br from-violet-500 via-indigo-500 to-amber-300 opacity-90" />
+            <Card className="group p-5 card-interactive gradient-border-top hover:shadow-glow hover:border-primary/30">
+              <div className="relative h-28 overflow-hidden rounded-lg bg-gradient-brand">
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/30 to-transparent p-3">
+                  <span className="text-sm font-medium text-white/90">{book.title}</span>
+                </div>
+              </div>
               <div className="mt-4 space-y-3">
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">{book.title}</h3>
@@ -77,17 +89,19 @@ export function BooksPage() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  <span className="rounded-full bg-muted px-3 py-1">目标 {book.targetChapterCount ?? "—"} 章</span>
-                  <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-400">已批准 {book.currentChapterCount} 章</span>
-                  <span className="rounded-full bg-primary/10 px-3 py-1 text-primary">{book.status}</span>
+                  <Badge variant="secondary">目标 {book.targetChapterCount ?? "—"} 章</Badge>
+                  <Badge variant="success">已批准 {book.currentChapterCount} 章</Badge>
+                  <Badge variant="outline">{book.status}</Badge>
                 </div>
               </div>
+            </Card>
             </Link>
           ))}
 
           {booksQuery.data && booksQuery.data.length === 0 && (
-            <div className="rounded-xl border border-dashed border-border bg-card p-8 text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
-              当前还没有书籍，点击右上角按钮即可快速创建一条示例数据。
+            <div className="empty-state md:col-span-2 xl:col-span-3">
+              <Library className="mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">当前还没有书籍，点击右上角按钮即可快速创建一条示例数据。</p>
             </div>
           )}
       </div>

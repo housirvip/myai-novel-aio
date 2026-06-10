@@ -171,7 +171,7 @@ function StatusCard({ card }: { card: WorkflowStatusCardViewModel }) {
     card.tone === "error"
       ? "border-destructive/20 bg-destructive/5 text-destructive"
       : card.tone === "success"
-        ? "border-emerald-200/50 dark:border-emerald-800/30 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400"
+        ? "border-success/30 bg-success/10 text-success"
         : card.tone === "running"
           ? "border-primary/20 bg-primary/5 text-primary"
           : "border-border bg-muted text-muted-foreground";

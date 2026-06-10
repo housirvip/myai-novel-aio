@@ -8,7 +8,7 @@ export type WorkflowStatusCardProps = {
 
 const toneStyles: Record<WorkflowStatusCardViewModel["tone"], string> = {
   error: "border-destructive/20 bg-destructive/10 text-destructive",
-  success: "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400",
+  success: "border-success/30 bg-success/10 text-success",
   running: "border-primary/20 bg-primary/10 text-primary",
   idle: "border-border bg-muted text-muted-foreground",
 };
@@ -28,7 +28,7 @@ export function WorkflowStatusCard({ card }: WorkflowStatusCardProps) {
 
   return (
     <div
-      className={`rounded-xl border p-5 shadow-sm transition-opacity duration-500 ${toneStyles[card.tone]} ${visible ? "opacity-100" : "opacity-0"}`}
+      className={`rounded-xl border p-5 shadow-elevation-1 transition-all duration-500 ${toneStyles[card.tone]} ${visible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
