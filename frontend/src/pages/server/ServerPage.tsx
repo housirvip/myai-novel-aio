@@ -1,5 +1,10 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { isTauri } from "@/lib/tauri";
 
 const ANSI_FG: Record<string, string> = {
@@ -232,16 +237,17 @@ export function ServerPage() {
       </div>
 
       {actionError && (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {actionError}
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
       )}
 
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <Card>
+        <CardContent className="p-6">
         <h3 className="text-lg font-semibold text-foreground">后端状态</h3>
         <div className="mt-4 space-y-4">
           <div className="flex items-center gap-3">
-            <span className={`inline-block h-2.5 w-2.5 rounded-full ${status.running ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
+            <span className={`inline-block h-2.5 w-2.5 rounded-full ${status.running ? "bg-success" : "bg-muted-foreground/30"}`} />
             <span className="text-sm font-medium text-foreground">{status.running ? "运行中" : "已停止"}</span>
           </div>
 
@@ -261,106 +267,104 @@ export function ServerPage() {
           <div className="flex flex-wrap gap-3">
             {status.running ? (
               <>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  className="bg-warning text-warning-foreground hover:bg-warning/90 hover:text-warning-foreground"
                   onClick={handleRestart}
                   disabled={actionLoading}
-                  className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
                 >
                   重启后端
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="destructive"
                   onClick={handleStop}
                   disabled={actionLoading}
-                  className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground disabled:opacity-50"
                 >
                   停止后端
-                </button>
+                </Button>
               </>
             ) : (
-              <button
-                type="button"
+              <Button
                 onClick={handleStart}
                 disabled={actionLoading}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
               >
                 启动后端
-              </button>
+              </Button>
             )}
           </div>
 
           <div className="border-t border-border pt-4">
             <div className="mb-2 text-xs text-muted-foreground">后端连接地址</div>
             <div className="flex gap-2">
-              <input
-                type="text"
+              <Input
                 value={backendUrl}
                 onChange={(e) => setBackendUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleReconnect()}
-                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
                 placeholder="http://127.0.0.1:3030"
               />
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                className="shrink-0"
                 onClick={handleReconnect}
                 disabled={actionLoading}
-                className="shrink-0 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground disabled:opacity-50"
               >
                 重新连接
-              </button>
+              </Button>
             </div>
           </div>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <Card>
+        <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-foreground">环境配置</h3>
             <p className="mt-1 text-xs text-muted-foreground">编辑 Go 后端的 .env 配置文件</p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={loadEnvFile}
               disabled={envLoading}
-              className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground disabled:opacity-50"
             >
               重新加载
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              size="sm"
               onClick={handleEnvSave}
               disabled={envLoading || !envDirty}
-              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
             >
               保存配置
-            </button>
+            </Button>
           </div>
         </div>
-        <textarea
+        <Textarea
           value={envContent}
           onChange={(e) => { setEnvContent(e.target.value); setEnvSaveMsg(""); }}
           spellCheck={false}
-          className="mt-4 h-[360px] w-full resize-y rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-300 outline-none focus:ring-2 focus:ring-primary"
+          className="mt-4 h-[360px] resize-y border-0 bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-300 focus-visible:ring-primary"
         />
         <div className="mt-3 space-y-2">
           <p className="text-xs text-muted-foreground">
             SERVER_PORT、SERVER_HOST、CORS_ALLOWED_ORIGINS 由 Tauri 管理，.env 中的值会被覆盖
           </p>
           {envSaveMsg && (
-            <p className={`text-xs font-medium ${envSaveMsg.startsWith("配置已保存") ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+            <p className={`text-xs font-medium ${envSaveMsg.startsWith("配置已保存") ? "text-success" : "text-destructive"}`}>
               {envSaveMsg}
             </p>
           )}
           {envDirty && (
-            <p className="text-xs text-amber-600 dark:text-amber-400">有未保存的修改</p>
+            <p className="text-xs text-warning">有未保存的修改</p>
           )}
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <Card>
+        <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground">实时日志</h3>
           <div className="flex items-center gap-4">
@@ -373,13 +377,9 @@ export function ServerPage() {
               />
               自动滚动
             </label>
-            <button
-              type="button"
-              onClick={() => setLogs([])}
-              className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground"
-            >
+            <Button variant="secondary" size="sm" onClick={() => setLogs([])}>
               清空
-            </button>
+            </Button>
           </div>
         </div>
         <div
@@ -396,7 +396,8 @@ export function ServerPage() {
             ))
           )}
         </div>
-      </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }
