@@ -35,6 +35,14 @@ const config: Config = {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
@@ -54,7 +62,48 @@ const config: Config = {
         sm: "0.25rem",
       },
       boxShadow: {
-        glow: "0 10px 40px rgba(109, 91, 255, 0.18)",
+        glow: "0 8px 32px hsl(var(--primary) / 0.12)",
+        "glow-lg": "0 12px 48px hsl(var(--primary) / 0.18)",
+        "glow-sm": "0 2px 12px hsl(var(--primary) / 0.08)",
+        "glow-accent": "0 8px 32px hsl(var(--accent) / 0.15)",
+        soft: "0 1px 8px hsl(var(--foreground) / 0.04)",
+        "card-hover": "0 8px 24px hsl(var(--foreground) / 0.08)",
+        "elevation-1": "0 1px 3px hsl(var(--foreground) / 0.04), 0 1px 2px hsl(var(--foreground) / 0.06)",
+        "elevation-2": "0 4px 12px hsl(var(--foreground) / 0.06), 0 2px 4px hsl(var(--foreground) / 0.04)",
+        "elevation-3": "0 12px 36px hsl(var(--foreground) / 0.1), 0 4px 12px hsl(var(--foreground) / 0.06)",
+        "input-focus": "0 0 0 3px hsl(var(--primary) / 0.1)",
+      },
+      backgroundImage: {
+        "gradient-brand":
+          "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.7) 50%, hsl(var(--accent) / 0.8) 100%)",
+        "gradient-header":
+          "linear-gradient(135deg, hsl(var(--primary) / 0.9), hsl(var(--primary) / 0.6))",
+        "gradient-subtle":
+          "linear-gradient(135deg, hsl(var(--primary) / 0.04) 0%, hsl(var(--accent) / 0.03) 100%)",
+        "gradient-mesh":
+          "radial-gradient(at 40% 20%, hsl(var(--primary) / 0.08) 0px, transparent 50%), radial-gradient(at 80% 0%, hsl(var(--accent) / 0.06) 0px, transparent 50%), radial-gradient(at 0% 50%, hsl(var(--primary) / 0.04) 0px, transparent 50%)",
+      },
+      transitionTimingFunction: {
+        "out-expo": "cubic-bezier(0.19, 1, 0.22, 1)",
+      },
+      keyframes: {
+        "fade-up": {
+          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "scale-in": {
+          "0%": { opacity: "0", transform: "scale(0.95)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+      },
+      animation: {
+        "fade-up": "fade-up 0.4s cubic-bezier(0.19, 1, 0.22, 1)",
+        "fade-in": "fade-in 0.3s ease-out",
+        "scale-in": "scale-in 0.3s cubic-bezier(0.19, 1, 0.22, 1)",
       },
       fontFamily: {
         sans: [
