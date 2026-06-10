@@ -25,6 +25,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+.qoder/
 
 # Tauri
 tauri/target/
