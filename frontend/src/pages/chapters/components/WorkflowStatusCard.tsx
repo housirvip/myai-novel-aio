@@ -28,7 +28,8 @@ export function WorkflowStatusCard({ card }: WorkflowStatusCardProps) {
 
   return (
     <div
-      className={`rounded-xl border p-5 shadow-elevation-1 transition-all duration-500 ${toneStyles[card.tone]} ${visible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"}`}
+      aria-hidden={!visible}
+      className={`rounded-xl border shadow-elevation-1 transition-all duration-500 ${toneStyles[card.tone]} ${visible ? "translate-y-0 opacity-100 p-5" : "pointer-events-none translate-y-1 opacity-0 max-h-0 overflow-hidden p-0 border-0"}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>

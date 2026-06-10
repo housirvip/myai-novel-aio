@@ -132,11 +132,16 @@ export function useStageEditor(params: {
     };
     const lastHydratedStage = lastHydratedStageRef.current;
     const firstLoadForStage =
-      !lastHydratedStage ||
-      lastHydratedStage.tab !== activeTab ||
-      (lastHydratedStage.content === "" && lastHydratedStage.summary === "");
+      lastHydratedStage == null ||
+      lastHydratedStage.tab !== activeTab;
 
-    if (!switchedTab && !firstLoadForStage && isDirty) {
+    const serverVersionChanged =
+      lastHydratedStage != null &&
+      lastHydratedStage.tab === activeTab &&
+      (lastHydratedStage.content !== nextStageState.content ||
+       lastHydratedStage.summary !== nextStageState.summary);
+
+    if (!switchedTab && !firstLoadForStage && !serverVersionChanged && isDirty) {
       return;
     }
 
@@ -146,7 +151,6 @@ export function useStageEditor(params: {
   }, [
     activeStageData?.content,
     activeStageData?.summary,
-    activeStageData?.metadata.updatedAt,
     activeTab,
     isDirty,
   ]);

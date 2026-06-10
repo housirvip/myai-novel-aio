@@ -61,8 +61,11 @@ export function useWorkflowEngine(params: {
   const [activeWorkflowTaskType, setActiveWorkflowTaskType] = useState<WorkflowTaskType | null>(null);
   const [lastCompletedWorkflowTask, setLastCompletedWorkflowTask] = useState<WorkflowTaskView | null>(null);
   const workflowSubmitLockRef = useRef(false);
+  const completionInProgressRef = useRef(false);
+  const currentChapterRef = useRef({ bookId: safeBookId, chapterNo: safeChapterNo });
+  currentChapterRef.current = { bookId: safeBookId, chapterNo: safeChapterNo };
   const lastWorkflowFeedbackKeyRef = useRef<string | null>(null);
-  const [planIntentDialogMode, setPlanIntentDialogMode] = useState<"initial" | "replan" | null>(null);
+  const [planIntentDialogMode, setPlanIntentDialogMode] = useState<"initial" | null>(null);
   const [planIntentDraft, setPlanIntentDraft] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState>({
     kind: "idle",
@@ -166,6 +169,7 @@ export function useWorkflowEngine(params: {
     setActiveWorkflowTaskType(null);
     setLastCompletedWorkflowTask(null);
     lastWorkflowFeedbackKeyRef.current = null;
+    completionInProgressRef.current = false;
     setFeedback({
       kind: "idle",
       title: "等待操作",
@@ -266,16 +270,30 @@ export function useWorkflowEngine(params: {
         return;
       }
 
-      void refreshChapter();
-      onWorkflowComplete(task.workflowType);
-      setFeedback({
-        kind: "success",
-        title: `${task.workflowType} 执行完成`,
-        detail: "章节状态与阶段内容已刷新。",
-      });
-      toast.success(`${task.workflowType} 执行完成`);
-      setActiveWorkflowTaskId(null);
-      setActiveWorkflowTaskType(null);
+      if (completionInProgressRef.current) return;
+      completionInProgressRef.current = true;
+      const snapshot = { bookId: safeBookId, chapterNo: safeChapterNo };
+      void (async () => {
+        try {
+          await refreshChapter();
+          const cur = currentChapterRef.current;
+          if (cur.bookId !== snapshot.bookId || cur.chapterNo !== snapshot.chapterNo) return;
+          onWorkflowComplete(task.workflowType);
+          setFeedback({
+            kind: "success",
+            title: `${task.workflowType} 执行完成`,
+            detail: "章节状态与阶段内容已刷新。",
+          });
+          toast.success(`${task.workflowType} 执行完成`);
+        } finally {
+          const cur = currentChapterRef.current;
+          if (cur.bookId === snapshot.bookId && cur.chapterNo === snapshot.chapterNo) {
+            setActiveWorkflowTaskId(null);
+            setActiveWorkflowTaskType(null);
+          }
+          completionInProgressRef.current = false;
+        }
+      })();
       return;
     }
 
@@ -287,7 +305,7 @@ export function useWorkflowEngine(params: {
     if (task.status !== "terminated") {
       toast.error(`${task.workflowType} 执行失败`, { description: task.error?.message });
     }
-    void refreshChapter();
+    void refreshChapter().catch(() => {});
     setActiveWorkflowTaskId(null);
     setActiveWorkflowTaskType(null);
   }, [workflowTaskQuery.data, safeBookId, safeChapterNo, refreshChapter, onWorkflowComplete]);

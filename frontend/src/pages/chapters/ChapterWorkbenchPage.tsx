@@ -458,20 +458,13 @@ export function ChapterWorkbenchPage() {
     workflow.setPlanIntentDraft("");
   };
 
-  const openInitialPlanDialog = () => {
+  const openPlanDialog = () => {
+    if (editor.isDirty && !window.confirm("当前 plan 尚未保存，确定生成新 plan 吗？")) {
+      return;
+    }
     workflow.generateAuthorIntentMutation.reset();
     workflow.setPlanIntentDraft("");
     workflow.setPlanIntentDialogMode("initial");
-  };
-
-  const rerunPlan = () => {
-    if (editor.isDirty && !window.confirm("当前 plan 尚未保存，确定重新 plan 吗？")) {
-      return;
-    }
-
-    workflow.generateAuthorIntentMutation.reset();
-    workflow.setPlanIntentDraft("");
-    workflow.setPlanIntentDialogMode("replan");
   };
 
   const confirmPlanIntent = () => {
@@ -698,7 +691,7 @@ export function ChapterWorkbenchPage() {
             </div>
             <div className="relative">
               <Textarea
-                className={`min-h-[420px] text-base leading-[1.85] disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 ${isContentStage ? "font-serif" : ""}`}
+                className={`min-h-[420px] text-base leading-[1.85] disabled:cursor-default disabled:opacity-100 ${isContentStage ? "font-serif" : ""}`}
                 value={editor.editorContent}
                 onChange={(event) => editor.setEditorContent(event.target.value)}
                 disabled={!editor.stageIsEditable}
@@ -722,13 +715,12 @@ export function ChapterWorkbenchPage() {
               saveStageMutationPending={editor.saveStageMutation.isPending}
               editorContentEmpty={!editor.editorContent.trim()}
               isDirty={editor.isDirty}
-              onOpenInitialPlanDialog={openInitialPlanDialog}
+              onOpenPlanDialog={openPlanDialog}
               onStartWorkflow={workflow.tryStartWorkflow}
-              onRerunPlan={rerunPlan}
               onSaveStage={() => editor.saveStageMutation.mutate()}
             />
 
-            <WorkflowStatusCard card={workflowStatusCard} />
+            <WorkflowStatusCard key={displayedWorkflowTask?.id ?? "idle"} card={workflowStatusCard} />
 
             <VersionHistoryPanel
               activeStageKey={editor.activeStageKey}
