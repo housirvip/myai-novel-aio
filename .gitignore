@@ -31,6 +31,11 @@ Thumbs.db
 tauri/target/
 tauri/gen/
 tauri/binaries/
+tauri/data/*.db
+tauri/data/*.db-shm
+tauri/data/*.db-wal
+.make-dev-tauri.log
+.tauri-dev.log
 
 # Test & Build
 *.exe
