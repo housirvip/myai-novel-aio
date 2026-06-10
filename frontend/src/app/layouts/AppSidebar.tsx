@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { NavLink, useLocation, useParams } from "react-router-dom";
 
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { listBooks } from "@/lib/books-api";
 import { queryKeys } from "@/lib/query/query-keys";
@@ -87,13 +88,13 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200",
+        "flex h-full shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-out-expo",
         collapsed ? "w-16" : "w-56",
       )}
     >
       {/* Logo */}
       <div className={cn("flex items-center gap-2 px-3 py-3", collapsed && "justify-center")}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-brand shadow-glow-sm text-primary-foreground">
           <Sparkles className="h-4 w-4" />
         </div>
         {!collapsed && (
@@ -115,11 +116,11 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               title={collapsed ? item.label : undefined}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
-                  collapsed && "justify-center",
+                  "flex items-center gap-2 rounded-lg border-l-[3px] px-2 py-1.5 text-sm font-medium transition-all duration-200",
+                  collapsed && "justify-center border-l-0",
                   isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                    ? "border-l-primary bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "border-l-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                 )
               }
             >
@@ -164,11 +165,11 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                       title={collapsed ? item.label : undefined}
                       className={({ isActive }) =>
                         cn(
-                          "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
-                          collapsed && "justify-center",
+                          "flex items-center gap-2 rounded-lg border-l-[3px] px-2 py-1.5 text-sm font-medium transition-all duration-200",
+                          collapsed && "justify-center border-l-0",
                           (item.isActive !== undefined ? item.isActive : isActive)
-                            ? "bg-primary text-primary-foreground shadow-glow"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                            ? "border-l-primary bg-primary/10 text-primary shadow-glow-sm"
+                            : "border-l-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                         )
                       }
                     >
@@ -181,7 +182,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           </>
         ) : (
           !collapsed && (
-            <div className="rounded-lg border border-dashed border-border px-3 py-3 text-xs text-muted-foreground">
+            <div className="rounded-lg border border-dashed border-border bg-gradient-subtle px-3 py-3 text-xs text-muted-foreground">
               从书库选择一本书开始创作
             </div>
           )
@@ -190,15 +191,15 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
 
       {/* Collapse toggle */}
       <div className="border-t border-sidebar-border px-2 py-2">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
           onClick={onToggle}
-          className="flex w-full items-center justify-center rounded-lg px-2 py-1.5 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+          className="flex w-full items-center justify-center text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
           aria-label={collapsed ? "展开导航栏" : "折叠导航栏"}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           {!collapsed && <span className="ml-2">折叠侧栏</span>}
-        </button>
+        </Button>
       </div>
     </aside>
   );

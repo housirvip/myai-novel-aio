@@ -54,7 +54,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
   const userInitial = user?.displayName?.charAt(0)?.toUpperCase() ?? "U";
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card px-3">
+    <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border/50 bg-card/80 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-card/60">
       {/* Mobile menu button */}
       <Button
         variant="ghost"
