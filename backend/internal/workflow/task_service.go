@@ -148,7 +148,7 @@ func (s *Service) startTask(ctx context.Context, bookID int64, chapterNo int, ta
 
 func (s *Service) ExecuteClaimedTask(ctx context.Context, taskID int64, leaseToken, workflowType, payload string) error {
 	s.logger.Info("workflow.task.worker_start", zap.Int64("taskId", taskID), zap.String("workflowType", workflowType))
-	if err := s.markRunning(ctx, taskID, leaseToken); err != nil {
+	if err := s.markRunning(ctx, taskID, leaseToken, workflowType); err != nil {
 		s.logger.Warn("workflow.task.worker_start_failed", zap.Int64("taskId", taskID), zap.String("workflowType", workflowType), zap.Error(err))
 		return err
 	}
@@ -168,11 +168,11 @@ func (s *Service) ExecuteClaimedTask(ctx context.Context, taskID int64, leaseTok
 
 	result, err := s.runWorkflow(ctx, workflowType, payload, notify)
 	if err != nil {
-		s.markFailed(ctx, taskID, err)
+		s.markFailed(ctx, taskID, err, workflowType)
 		s.logger.Error("workflow.task.failed", zap.Int64("taskId", taskID), zap.String("workflowType", workflowType), zap.Error(err))
 		return err
 	}
-	s.markSucceeded(ctx, taskID, result)
+	s.markSucceeded(ctx, taskID, result, workflowType)
 	s.logger.Info("workflow.task.succeeded", zap.Int64("taskId", taskID), zap.String("workflowType", workflowType))
 	return nil
 }
@@ -239,7 +239,7 @@ func (s *Service) runWorkflow(ctx context.Context, workflowType, payload string,
 	}
 }
 
-func (s *Service) markRunning(ctx context.Context, taskID int64, leaseToken string) error {
+func (s *Service) markRunning(ctx context.Context, taskID int64, leaseToken, workflowType string) error {
 	now := shared.NowISO()
 	res := s.db.WithContext(ctx).Model(&models.WorkflowTask{}).Where(
 		"id = ? AND status = ? AND lease_token = ?",
@@ -258,7 +258,7 @@ func (s *Service) markRunning(ctx context.Context, taskID int64, leaseToken stri
 	if res.RowsAffected == 0 {
 		return shared.Conflict("task is no longer claimable", map[string]any{"taskId": taskID})
 	}
-	s.logger.Info("workflow.task.mark_running", zap.Int64("taskId", taskID))
+	s.logger.Info("workflow.task.mark_running", zap.Int64("taskId", taskID), zap.String("workflowType", workflowType))
 	return nil
 }
 
@@ -277,7 +277,7 @@ func (s *Service) notifyProgress(ctx context.Context, taskID int64, stage string
 	return nil
 }
 
-func (s *Service) markSucceeded(ctx context.Context, taskID int64, result any) {
+func (s *Service) markSucceeded(ctx context.Context, taskID int64, result any, workflowType string) {
 	now := shared.NowISO()
 	resultJSON := mustJSON(result)
 	planID, draftID := extractPointerIDs(result)
@@ -302,10 +302,10 @@ func (s *Service) markSucceeded(ctx context.Context, taskID int64, result any) {
 		s.logger.Error("workflow.task.finalize_failed", zap.Int64("taskId", taskID), zap.Error(err))
 		return
 	}
-	s.logger.Info("workflow.task.mark_succeeded", zap.Int64("taskId", taskID))
+	s.logger.Info("workflow.task.mark_succeeded", zap.Int64("taskId", taskID), zap.String("workflowType", workflowType))
 }
 
-func (s *Service) markFailed(ctx context.Context, taskID int64, err error) {
+func (s *Service) markFailed(ctx context.Context, taskID int64, err error, workflowType string) {
 	now := shared.NowISO()
 	code := "internal_error"
 	message := err.Error()
@@ -334,7 +334,7 @@ func (s *Service) markFailed(ctx context.Context, taskID int64, err error) {
 		s.logger.Error("workflow.task.fail_persist_failed", zap.Int64("taskId", taskID), zap.Error(e))
 		return
 	}
-	s.logger.Info("workflow.task.mark_failed", zap.Int64("taskId", taskID), zap.String("code", code))
+	s.logger.Info("workflow.task.mark_failed", zap.Int64("taskId", taskID), zap.String("workflowType", workflowType), zap.String("code", code))
 }
 
 func (s *Service) List(ctx context.Context, bookID int64, chapterNo int, limit int) ([]*TaskView, error) {

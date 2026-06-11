@@ -46,7 +46,7 @@ func (h *WorkflowHandler) resolveLLMConfig(c *gin.Context, provider, lowModel, m
 		var err error
 		overrides, err = h.userSettingsSvc.Get(c.Request.Context(), actor.UserID)
 		if err != nil {
-			middleware.Logger(c).Warn("user_settings_unavailable", zap.Int64("userId", actor.UserID), zap.Error(err))
+			middleware.Logger(c).Warn("workflow.user_settings.unavailable", zap.Int64("userId", actor.UserID), zap.Error(err))
 		}
 	}
 	rc := usersettings.ResolveForRequest(h.cfg, overrides, provider, lowModel, midModel, highModel)
@@ -82,6 +82,7 @@ func (h *WorkflowHandler) runPlan(c *gin.Context) {
 		return
 	}
 	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
+	middleware.Logger(c).Info("workflow.plan.invoked", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo))
 	res, err := h.plan.Run(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -97,6 +98,7 @@ func (h *WorkflowHandler) runDraft(c *gin.Context) {
 		return
 	}
 	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
+	middleware.Logger(c).Info("workflow.draft.invoked", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo))
 	res, err := h.draft.Run(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -112,6 +114,7 @@ func (h *WorkflowHandler) runReview(c *gin.Context) {
 		return
 	}
 	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
+	middleware.Logger(c).Info("workflow.review.invoked", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo))
 	res, err := h.review.Run(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -127,6 +130,7 @@ func (h *WorkflowHandler) runRepair(c *gin.Context) {
 		return
 	}
 	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
+	middleware.Logger(c).Info("workflow.repair.invoked", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo))
 	res, err := h.repair.Run(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -142,6 +146,7 @@ func (h *WorkflowHandler) runApprove(c *gin.Context) {
 		return
 	}
 	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
+	middleware.Logger(c).Info("workflow.approve.invoked", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.Bool("dryRun", in.DryRun))
 	res, err := h.approve.Run(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -157,6 +162,7 @@ func (h *WorkflowHandler) runStageSummary(c *gin.Context) {
 		return
 	}
 	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
+	middleware.Logger(c).Info("workflow.stage_summary.invoked", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo))
 	res, err := h.stageSummary.Run(c.Request.Context(), in)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -271,6 +277,7 @@ func (h *WorkflowHandler) runAuthorIntent(c *gin.Context) {
 		return
 	}
 	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
+	middleware.Logger(c).Info("workflow.author_intent.invoked", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo))
 	res, err := h.plan.GenerateAuthorIntent(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)

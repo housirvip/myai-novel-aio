@@ -69,15 +69,15 @@ func openContainer() (*Container, error) {
 	if err := db.Migrate(gdb); err != nil {
 		return nil, err
 	}
-	llmF := llmfactory.New(cfg)
+	llmF := llmfactory.New(cfg, zlog.Named("llm"))
 	embClient := llmF.NewEmbedding()
-	retrieval := planning.NewRetrievalServiceWithEmbedding(gdb, cfg, embClient)
+	retrieval := planning.NewRetrievalServiceWithEmbedding(gdb, cfg, embClient, zlog.Named("planning"))
 	return &Container{
 		Cfg:        cfg,
 		Logger:     zlog,
 		DB:         gdb,
 		Book:       book.NewService(gdb),
-		Chapter:    chapter.NewService(gdb),
+		Chapter:    chapter.NewService(gdb, zlog.Named("chapter")),
 		Outline:    outline.NewService(gdb),
 		World:      world_setting.NewService(gdb),
 		Character:  character.NewService(gdb),
@@ -87,12 +87,12 @@ func openContainer() (*Container, error) {
 		Hook:       story_hook.NewService(gdb),
 		LLMFactory: llmF,
 		Retrieval:  retrieval,
-		PlanWF:     workflows.NewPlanWorkflow(gdb, cfg, llmF, retrieval),
-		DraftWF:    workflows.NewDraftWorkflow(gdb, cfg, llmF),
-		ReviewWF:   workflows.NewReviewWorkflow(gdb, cfg, llmF),
-		RepairWF:   workflows.NewRepairWorkflow(gdb, cfg, llmF),
-		ApproveWF:  workflows.NewApproveWorkflow(gdb, cfg, llmF),
-		StageSumWF: workflows.NewStageSummaryWorkflow(gdb, cfg, llmF),
+		PlanWF:     workflows.NewPlanWorkflow(gdb, cfg, llmF, retrieval, zlog.Named("workflow.plan")),
+		DraftWF:    workflows.NewDraftWorkflow(gdb, cfg, llmF, zlog.Named("workflow.draft")),
+		ReviewWF:   workflows.NewReviewWorkflow(gdb, cfg, llmF, zlog.Named("workflow.review")),
+		RepairWF:   workflows.NewRepairWorkflow(gdb, cfg, llmF, zlog.Named("workflow.repair")),
+		ApproveWF:  workflows.NewApproveWorkflow(gdb, cfg, llmF, zlog.Named("workflow.approve")),
+		StageSumWF: workflows.NewStageSummaryWorkflow(gdb, cfg, llmF, zlog.Named("workflow.stage_summary")),
 	}, nil
 }
 
