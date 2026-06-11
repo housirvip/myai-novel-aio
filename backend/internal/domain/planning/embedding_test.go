@@ -184,3 +184,88 @@ func TestBasicEmbeddingSearcher_TopKByScore(t *testing.T) {
 	require.Len(t, matches, 1)
 	require.Equal(t, int64(1), matches[0].EntityID, "highest cosine should win")
 }
+
+func TestTokenizeForHash(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want []string
+	}{
+		{"empty", "", nil},
+		{"english_lowered", "Hello World", []string{"hello", "world"}},
+		{"chinese", "林夜进入宗门", []string{"林夜进入宗门"}},
+		{"mixed", "林夜的sword", []string{"林夜的sword"}},
+		{"underscore_preserved", "my_var", []string{"my_var"}},
+		{"punctuation_split", "a,b;c", []string{"a", "b", "c"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tokenizeForHash(tt.in)
+			if tt.want == nil {
+				require.Empty(t, got)
+			} else {
+				require.Equal(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func TestIsRuleHeavyQuery(t *testing.T) {
+	tests := []struct {
+		name   string
+		tokens []string
+		want   bool
+	}{
+		{"contains_rule", []string{"某些", "规则"}, true},
+		{"contains_system", []string{"制度", "文化"}, true},
+		{"no_heavy", []string{"角色", "剧情"}, false},
+		{"empty", nil, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, isRuleHeavyQuery(tt.tokens))
+		})
+	}
+}
+
+func TestTopKMatches(t *testing.T) {
+	matches := []EmbeddingMatch{
+		{EntityID: 1, Score: 0.3},
+		{EntityID: 2, Score: 0.9},
+		{EntityID: 3, Score: 0.5},
+		{EntityID: 4, Score: 0.9},
+	}
+
+	t.Run("limit_truncates", func(t *testing.T) {
+		input := make([]EmbeddingMatch, len(matches))
+		copy(input, matches)
+		result := topKMatches(input, 2)
+		require.Len(t, result, 2)
+		require.Equal(t, int64(2), result[0].EntityID)
+		require.Equal(t, int64(4), result[1].EntityID)
+	})
+
+	t.Run("limit_zero_returns_all", func(t *testing.T) {
+		input := make([]EmbeddingMatch, len(matches))
+		copy(input, matches)
+		result := topKMatches(input, 0)
+		require.Len(t, result, 4)
+		require.Equal(t, int64(2), result[0].EntityID)
+	})
+
+	t.Run("limit_exceeds_len", func(t *testing.T) {
+		input := make([]EmbeddingMatch, len(matches))
+		copy(input, matches)
+		result := topKMatches(input, 100)
+		require.Len(t, result, 4)
+	})
+
+	t.Run("sorted_desc_by_score", func(t *testing.T) {
+		input := make([]EmbeddingMatch, len(matches))
+		copy(input, matches)
+		result := topKMatches(input, 0)
+		for i := 1; i < len(result); i++ {
+			require.GreaterOrEqual(t, result[i-1].Score, result[i].Score)
+		}
+	})
+}
