@@ -1580,6 +1580,115 @@ describe("ChapterWorkbenchPage", () => {
     });
   });
 
+  it("loads final content immediately after approve switches to final tab", async () => {
+    vi.mocked(workflowsApi.getWorkflowTask).mockResolvedValue({
+      id: 9005,
+      bookId: 1,
+      chapterId: 2,
+      chapterNo: 2,
+      workflowType: "approve",
+      status: "succeeded",
+      stage: "saving_artifacts",
+      progressPercent: 100,
+      startedAt: "2026-05-10T00:00:00.000Z",
+      finishedAt: "2026-05-10T00:03:00.000Z",
+      currentPlanId: 101,
+      currentDraftId: 102,
+      result: { finalId: 104 },
+      error: null,
+      createdAt: "2026-05-10T00:00:00.000Z",
+      updatedAt: "2026-05-10T00:03:00.000Z",
+    } as never);
+    vi.mocked(chaptersApi.getChapterWorkflowState).mockResolvedValue({
+      status: "reviewed",
+      hasPlan: true,
+      hasDraft: true,
+      hasReview: true,
+      hasFinal: false,
+      currentPlanId: 101,
+      currentDraftId: 102,
+      currentReviewId: 103,
+      currentFinalId: null,
+      availableActions: ["approve"],
+    } as never);
+    vi.mocked(chaptersApi.getChapterStage).mockImplementation(async (_bookId, _chapterNo, stage) => ({
+      content: stage === "final" ? "这是批准后的 final 正文" : `${stage} content`,
+      summary: stage === "final" ? "final summary" : `${stage} summary`,
+      metadata: { stage, wordCount: 10, updatedAt: "2026-05-10T00:00:00.000Z" },
+    } as never));
+
+    renderWithRoute(<ChapterWorkbenchPage />, "/app/books/1/chapters/2", "/app/books/:bookId/chapters/:chapterNo");
+
+    fireEvent.click(screen.getByRole("button", { name: "Review" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "批准成稿" })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "批准成稿" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Final" })).toHaveClass("bg-primary");
+      expect(screen.getByPlaceholderText("阶段正文内容")).toHaveValue("这是批准后的 final 正文");
+    });
+  });
+
+  it("reports refresh failures after a workflow task succeeds", async () => {
+    vi.mocked(workflowsApi.getWorkflowTask).mockResolvedValue({
+      id: 9005,
+      bookId: 1,
+      chapterId: 2,
+      chapterNo: 2,
+      workflowType: "approve",
+      status: "succeeded",
+      stage: "saving_artifacts",
+      progressPercent: 100,
+      startedAt: "2026-05-10T00:00:00.000Z",
+      finishedAt: "2026-05-10T00:03:00.000Z",
+      currentPlanId: 101,
+      currentDraftId: 102,
+      result: { finalId: 104 },
+      error: null,
+      createdAt: "2026-05-10T00:00:00.000Z",
+      updatedAt: "2026-05-10T00:03:00.000Z",
+    } as never);
+    vi.mocked(chaptersApi.getChapterWorkflowState)
+      .mockResolvedValueOnce({
+        status: "reviewed",
+        hasPlan: true,
+        hasDraft: true,
+        hasReview: true,
+        hasFinal: false,
+        currentPlanId: 101,
+        currentDraftId: 102,
+        currentReviewId: 103,
+        currentFinalId: null,
+        availableActions: ["approve"],
+      } as never)
+      .mockRejectedValue(new Error("刷新 final 失败"));
+    vi.mocked(chaptersApi.getChapterStage).mockResolvedValue({
+      content: "final content",
+      summary: "final summary",
+      metadata: { stage: "final", wordCount: 10, updatedAt: "2026-05-10T00:00:00.000Z" },
+    } as never);
+
+    renderWithRoute(<ChapterWorkbenchPage />, "/app/books/1/chapters/2", "/app/books/:bookId/chapters/:chapterNo");
+
+    fireEvent.click(screen.getByRole("button", { name: "Review" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "批准成稿" })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "批准成稿" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("approve 已完成，但阶段刷新失败")).toBeInTheDocument();
+      expect(screen.getByText("刷新 final 失败")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Review" })).toHaveClass("bg-primary");
+    });
+  });
+
   it("shows approve task status card while running", async () => {
     vi.mocked(workflowsApi.getWorkflowTask).mockResolvedValue({
       id: 9005,

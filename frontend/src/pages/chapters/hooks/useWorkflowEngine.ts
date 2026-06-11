@@ -3,9 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { formatApiErrorMessage } from "@/lib/api";
-import { getChapterWorkflowState } from "@/lib/chapters-api";
+import { getChapterStage, getChapterWorkflowState } from "@/lib/chapters-api";
 import { queryKeys } from "@/lib/query/query-keys";
 import type {
+  ChapterStage,
   WorkflowTaskType,
   WorkflowTaskView,
 } from "@/lib/types";
@@ -25,6 +26,14 @@ import {
 
 import type { FeedbackState, ManualEntityRefs, StageTab, WorkflowRunRequest } from "./types";
 import type { WorkflowProvider } from "./useWorkflowSettings";
+
+const completedStageByWorkflow: Partial<Record<WorkflowTaskType, ChapterStage>> = {
+  plan: "plan",
+  draft: "draft",
+  review: "review",
+  repair: "draft",
+  approve: "final",
+};
 
 export function useWorkflowEngine(params: {
   bookId: number | null;
@@ -138,7 +147,7 @@ export function useWorkflowEngine(params: {
 
   // ------ refreshChapter ------
 
-  const refreshChapter = useCallback(async () => {
+  const refreshChapter = useCallback(async (completedStage?: ChapterStage) => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.chapter(safeBookId, safeChapterNo) }),
       queryClient.invalidateQueries({ queryKey: queryKeys.chapterWorkflowState(safeBookId, safeChapterNo) }),
@@ -159,6 +168,24 @@ export function useWorkflowEngine(params: {
       queryClient.invalidateQueries({ queryKey: queryKeys.chapterWorkflowTasks(safeBookId, safeChapterNo, 20) }),
       queryClient.invalidateQueries({ queryKey: queryKeys.chapters(safeBookId) }),
     ]);
+
+    if (!completedStage) {
+      return;
+    }
+
+    const [workflowState, stageData] = await Promise.all([
+      queryClient.fetchQuery({
+        queryKey: queryKeys.chapterWorkflowState(safeBookId, safeChapterNo),
+        queryFn: () => getChapterWorkflowState(safeBookId, safeChapterNo),
+      }),
+      queryClient.fetchQuery({
+        queryKey: queryKeys.chapterStage(safeBookId, safeChapterNo, completedStage),
+        queryFn: () => getChapterStage(safeBookId, safeChapterNo, completedStage),
+      }),
+    ]);
+
+    queryClient.setQueryData(queryKeys.chapterWorkflowState(safeBookId, safeChapterNo), workflowState);
+    queryClient.setQueryData(queryKeys.chapterStage(safeBookId, safeChapterNo, completedStage), stageData);
   }, [queryClient, safeBookId, safeChapterNo]);
 
   // ------ Effects ------
@@ -275,7 +302,23 @@ export function useWorkflowEngine(params: {
       const snapshot = { bookId: safeBookId, chapterNo: safeChapterNo };
       void (async () => {
         try {
-          await refreshChapter();
+          try {
+            await refreshChapter(completedStageByWorkflow[task.workflowType]);
+          } catch (error) {
+            const cur = currentChapterRef.current;
+            if (cur.bookId !== snapshot.bookId || cur.chapterNo !== snapshot.chapterNo) return;
+            setLastCompletedWorkflowTask(null);
+            setFeedback({
+              kind: "error",
+              title: `${task.workflowType} 已完成，但阶段刷新失败`,
+              detail: formatApiErrorMessage(error, "章节状态与阶段内容刷新失败，请手动刷新后查看最新结果。"),
+            });
+            toast.error(`${task.workflowType} 已完成，但阶段刷新失败`, {
+              description: formatApiErrorMessage(error, "请手动刷新后查看最新结果。"),
+            });
+            return;
+          }
+
           const cur = currentChapterRef.current;
           if (cur.bookId !== snapshot.bookId || cur.chapterNo !== snapshot.chapterNo) return;
           onWorkflowComplete(task.workflowType);

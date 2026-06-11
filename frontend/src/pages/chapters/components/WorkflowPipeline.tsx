@@ -41,7 +41,7 @@ export function WorkflowPipeline(props: {
                 className={cn(
                   "group relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   status === "active" && "bg-primary text-primary-foreground shadow-glow",
-                  status === "completed" && "bg-muted text-foreground hover:bg-primary/10",
+                  status === "completed" && "bg-primary/10 text-primary ring-1 ring-primary/20 hover:bg-primary/15",
                   status === "available" && "text-muted-foreground hover:bg-muted hover:text-foreground",
                   status === "locked" && "cursor-default text-muted-foreground/50",
                 )}
@@ -50,7 +50,7 @@ export function WorkflowPipeline(props: {
                 <span className={cn(
                   "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px]",
                   status === "active" && "bg-primary-foreground/20 text-primary-foreground",
-                  status === "completed" && "bg-primary/15 text-primary",
+                  status === "completed" && "bg-primary text-primary-foreground shadow-glow-sm",
                   status === "available" && "border border-border text-muted-foreground",
                   status === "locked" && "border border-border/50 text-muted-foreground/50",
                 )}>
@@ -60,10 +60,10 @@ export function WorkflowPipeline(props: {
               </button>
               {index < pipelineStages.length - 1 && (
                 <div className={cn(
-                  "mx-1 h-px flex-1 transition-colors duration-300",
+                  "mx-1 flex-1 rounded-full transition-colors duration-300",
                   props.stageAvailability[pipelineStages[index + 1].key]
-                    ? "bg-primary/30"
-                    : "bg-border",
+                    ? "h-1 bg-primary shadow-glow-sm"
+                    : "h-px bg-border",
                 )} />
               )}
             </div>
