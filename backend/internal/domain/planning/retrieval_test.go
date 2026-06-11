@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 
 	"myai-novel-go/internal/config"
 	"myai-novel-go/internal/db/models"
@@ -35,7 +36,7 @@ func TestRetrievalService_KeywordAndManualID(t *testing.T) {
 	}
 
 	cfg := defaultPlanningCfg()
-	svc := planning.NewRetrievalService(gdb, cfg)
+	svc := planning.NewRetrievalService(gdb, cfg, zap.NewNop())
 	out, err := svc.Retrieve(context.Background(), planning.RetrieveParams{
 		BookID: bookID, ChapterNo: 5, Keywords: []string{"林夜"},
 		ManualRefs: planning.ManualEntityRefs{CharacterIDs: []int64{3}}, // 手动指定陈雪

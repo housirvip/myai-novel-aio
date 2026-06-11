@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"myai-novel-go/internal/config"
@@ -21,13 +22,14 @@ type RetrievalService struct {
 	reranker  Reranker
 	embedding llm.EmbeddingClient // 持有以便外部触发刷新;nil 表示禁用
 	store     EmbeddingStore
+	logger    *zap.Logger
 }
 
-func NewRetrievalService(db *gorm.DB, cfg *config.Config) *RetrievalService {
-	return NewRetrievalServiceWithEmbedding(db, cfg, nil)
+func NewRetrievalService(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *RetrievalService {
+	return NewRetrievalServiceWithEmbedding(db, cfg, nil, logger)
 }
 
-func NewRetrievalServiceWithEmbedding(db *gorm.DB, cfg *config.Config, embedding llm.EmbeddingClient) *RetrievalService {
+func NewRetrievalServiceWithEmbedding(db *gorm.DB, cfg *config.Config, embedding llm.EmbeddingClient, logger *zap.Logger) *RetrievalService {
 	base := NewRuleCandidateProvider(cfg)
 	var provider CandidateProvider = base
 	var store EmbeddingStore
@@ -49,7 +51,7 @@ func NewRetrievalServiceWithEmbedding(db *gorm.DB, cfg *config.Config, embedding
 	if cfg.PlanningRetrievalReranker == "heuristic" {
 		reranker = NewHeuristicReranker()
 	}
-	return &RetrievalService{db: db, cfg: cfg, provider: provider, reranker: reranker, embedding: embedding, store: store}
+	return &RetrievalService{db: db, cfg: cfg, provider: provider, reranker: reranker, embedding: embedding, store: store, logger: logger}
 }
 
 // EmbeddingClient 暴露给上层(refresh 端点 / CLI)调用。
@@ -68,6 +70,8 @@ type RetrieveParams struct {
 
 // Retrieve 等价原 retrievePlanContext:加载 book → 候选召回 → 重排 → 拼上下文。
 func (s *RetrievalService) Retrieve(ctx context.Context, params RetrieveParams) (*RetrievedContext, error) {
+	s.logger.Debug("planning.retrieval.started", zap.Int64("bookId", params.BookID), zap.Int("chapterNo", params.ChapterNo), zap.Int("keywordCount", len(params.Keywords)))
+
 	var book models.Book
 	if err := s.db.WithContext(ctx).First(&book, params.BookID).Error; err != nil {
 		return nil, shared.NotFound(fmt.Sprintf("book not found: %d", params.BookID))
@@ -77,10 +81,17 @@ func (s *RetrievalService) Retrieve(ctx context.Context, params RetrieveParams) 
 	if err != nil {
 		return nil, err
 	}
+	s.logger.Debug("planning.retrieval.candidates_loaded",
+		zap.Int("outlines", len(bundle.Outlines)),
+		zap.Int("recentChapters", len(bundle.RecentChapters)),
+		zap.Int("characters", len(bundle.EntityGroups.Characters)),
+	)
+
 	bundle, err = s.reranker.Rerank(ctx, params, bundle)
 	if err != nil {
 		return nil, err
 	}
+	s.logger.Debug("planning.retrieval.reranked")
 
 	out := &RetrievedContext{}
 	out.Book.ID = book.ID

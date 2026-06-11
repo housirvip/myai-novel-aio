@@ -5,15 +5,19 @@ import (
 	"errors"
 	"fmt"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"myai-novel-go/internal/db/models"
 	"myai-novel-go/internal/domain/shared"
 )
 
-type Service struct{ db *gorm.DB }
+type Service struct {
+	db     *gorm.DB
+	logger *zap.Logger
+}
 
-func NewService(db *gorm.DB) *Service { return &Service{db: db} }
+func NewService(db *gorm.DB, logger *zap.Logger) *Service { return &Service{db: db, logger: logger} }
 
 type CreateInput struct {
 	BookID                int64   `json:"-"`
@@ -370,6 +374,7 @@ func (s *Service) WriteStage(ctx context.Context, in WriteStageInput) (*StageHis
 	if err != nil {
 		return nil, err
 	}
+	s.logger.Info("chapter.write_stage.completed", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.String("stage", in.Stage), zap.Int64("entryId", entry.ID))
 	return &entry, nil
 }
 
