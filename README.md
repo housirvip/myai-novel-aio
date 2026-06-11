@@ -29,18 +29,18 @@ cp .env.example .env
 # 开发时将 WEBUI_DIST_PATH 留空（使用 Vite proxy）
 ```
 
-2. 启动后端（终端 1）：
+2. 启动开发服务：
 ```bash
-cd backend
-go run ./cmd/server
-# 服务启动在 http://127.0.0.1:3000
+./dev.sh
+# 同时启动前端与后端；任一进程退出时会自动清理另一个进程
 ```
 
-3. 启动前端（终端 2）：
+也可以分两个终端手动启动：
 ```bash
-cd frontend
-npm install
-npm run dev
+make dev-backend
+# 服务启动在 http://127.0.0.1:3000
+
+make dev-frontend
 # 开发服务器在 http://127.0.0.1:5173/app/
 # API 请求自动代理到 :3000
 ```
