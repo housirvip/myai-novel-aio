@@ -17,11 +17,15 @@ import (
 )
 
 type ApproveInput struct {
-	BookID    int64  `json:"bookId" binding:"required"`
-	ChapterNo int    `json:"chapterNo" binding:"required"`
-	Provider  string `json:"provider"`
-	Model     string `json:"model"`
-	DryRun    bool   `json:"dryRun"`
+	BookID    int64                  `json:"bookId" binding:"required"`
+	ChapterNo int                    `json:"chapterNo" binding:"required"`
+	Provider  string                 `json:"provider"`
+	Model     string                 `json:"model"`
+	LowModel  string                 `json:"lowModel"`
+	MidModel  string                 `json:"midModel"`
+	HighModel string                 `json:"highModel"`
+	LLMConfig *llm.ResolvedLLMConfig `json:"llmConfig,omitempty"`
+	DryRun    bool                   `json:"dryRun"`
 }
 
 type ApproveOutput struct {
@@ -130,7 +134,7 @@ func NewApproveWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factor
 }
 
 func (w *ApproveWorkflow) Run(ctx context.Context, in ApproveInput, notify StageNotifier) (*ApproveOutput, error) {
-	llmCli, err := w.llmF.Create(llm.ProviderName(in.Provider))
+	llmCli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +163,7 @@ func (w *ApproveWorkflow) Run(ctx context.Context, in ApproveInput, notify Stage
 	// 1. 生成 final 正文
 	Notify(notify, shared.WorkflowStageGeneratingFinal, 30)
 	finalRes, err := llmCli.Generate(ctx, llm.GenerateParams{
-		Model: llm.ResolveModel(w.cfg, in.Model, llm.TierHigh),
+		Model: resolveModel(in.LLMConfig, w.cfg, in.Model, llm.TierHigh),
 		Messages: planning.BuildApprovePrompt(planning.ApprovePromptInput{
 			PlanContent: plan.Content, DraftContent: draft.Content, RetrievedContext: retrievedCtx,
 		}),
@@ -171,7 +175,7 @@ func (w *ApproveWorkflow) Run(ctx context.Context, in ApproveInput, notify Stage
 	// 2. 抽取结构化 diff
 	Notify(notify, shared.WorkflowStageExtractingDiff, 60)
 	diffRes, err := llmCli.Generate(ctx, llm.GenerateParams{
-		Model:          llm.ResolveModel(w.cfg, in.Model, llm.TierMid),
+		Model:          resolveModel(in.LLMConfig, w.cfg, in.Model, llm.TierMid),
 		ResponseFormat: llm.ResponseFormatJSON,
 		Messages: planning.BuildApproveDiffPrompt(struct {
 			PlanContent      string

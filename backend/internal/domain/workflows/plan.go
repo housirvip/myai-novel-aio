@@ -21,6 +21,10 @@ type PlanInput struct {
 	ChapterNo        int                      `json:"chapterNo" binding:"required"`
 	Provider         string                   `json:"provider"`
 	Model            string                   `json:"model"`
+	LowModel         string                   `json:"lowModel"`
+	MidModel         string                   `json:"midModel"`
+	HighModel        string                   `json:"highModel"`
+	LLMConfig        *llm.ResolvedLLMConfig   `json:"llmConfig,omitempty"`
 	AuthorIntent     string                   `json:"authorIntent"`
 	TargetWords      int                      `json:"targetWords"`
 	ManualEntityRefs planning.ManualEntityRefs `json:"manualEntityRefs"`
@@ -56,6 +60,10 @@ type AuthorIntentInput struct {
 	ChapterNo        int                       `json:"chapterNo" binding:"required"`
 	Provider         string                    `json:"provider"`
 	Model            string                    `json:"model"`
+	LowModel         string                    `json:"lowModel"`
+	MidModel         string                    `json:"midModel"`
+	HighModel        string                    `json:"highModel"`
+	LLMConfig        *llm.ResolvedLLMConfig    `json:"llmConfig,omitempty"`
 	ManualEntityRefs planning.ManualEntityRefs `json:"manualEntityRefs"`
 }
 
@@ -69,7 +77,7 @@ type AuthorIntentOutput struct {
 // GenerateAuthorIntent 跑"初始检索 + 意图草案生成",
 // 不写库、不进入 plan 流水线,纯建议性输出。供 /api/workflows/author-intent 用。
 func (w *PlanWorkflow) GenerateAuthorIntent(ctx context.Context, in AuthorIntentInput, notify StageNotifier) (*AuthorIntentOutput, error) {
-	llmCli, err := w.llmF.Create(llm.ProviderName(in.Provider))
+	llmCli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +90,7 @@ func (w *PlanWorkflow) GenerateAuthorIntent(ctx context.Context, in AuthorIntent
 	}
 	Notify(notify, shared.WorkflowStageGeneratingAuthorIntent, 60)
 	res, err := llmCli.Generate(ctx, llm.GenerateParams{
-		Model: llm.ResolveModel(w.cfg, in.Model, llm.TierMid),
+		Model: resolveModel(in.LLMConfig, w.cfg, in.Model, llm.TierMid),
 		Messages: planning.BuildIntentGenerationPrompt(struct {
 			BookTitle         string
 			ChapterNo         int
@@ -115,7 +123,7 @@ func (w *PlanWorkflow) Run(ctx context.Context, in PlanInput, notify StageNotifi
 		in.TargetWords = defaultTargetWords
 	}
 
-	llmCli, err := w.llmF.Create(llm.ProviderName(in.Provider))
+	llmCli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +148,7 @@ func (w *PlanWorkflow) Run(ctx context.Context, in PlanInput, notify StageNotifi
 		Notify(notify, shared.WorkflowStageGeneratingAuthorIntent, 30)
 		// 注:为了让 mock 命中"作者意图草案"分支,这里 prompt 必须包含该字符串
 		intentRes, err := llmCli.Generate(ctx, llm.GenerateParams{
-			Model: llm.ResolveModel(w.cfg, in.Model, llm.TierMid),
+			Model: resolveModel(in.LLMConfig, w.cfg, in.Model, llm.TierMid),
 			Messages: planning.BuildIntentGenerationPrompt(struct {
 				BookTitle         string
 				ChapterNo         int
@@ -167,7 +175,7 @@ func (w *PlanWorkflow) Run(ctx context.Context, in PlanInput, notify StageNotifi
 
 	Notify(notify, shared.WorkflowStageExtractingKeywords, 45)
 	kwRes, err := llmCli.Generate(ctx, llm.GenerateParams{
-		Model:          llm.ResolveModel(w.cfg, in.Model, llm.TierLow),
+		Model:          resolveModel(in.LLMConfig, w.cfg, in.Model, llm.TierLow),
 		Messages:       planning.BuildKeywordExtractionPrompt(authorIntent),
 		ResponseFormat: llm.ResponseFormatJSON,
 	})
@@ -194,7 +202,7 @@ func (w *PlanWorkflow) Run(ctx context.Context, in PlanInput, notify StageNotifi
 		MustAvoid:     extracted.MustAvoid,
 	}
 	planRes, err := llmCli.Generate(ctx, llm.GenerateParams{
-		Model: llm.ResolveModel(w.cfg, in.Model, llm.TierMid),
+		Model: resolveModel(in.LLMConfig, w.cfg, in.Model, llm.TierMid),
 		Messages: planning.BuildPlanPrompt(planning.PlanPromptInput{
 			BookTitle:         initialCtx.Book.Title,
 			ChapterNo:         in.ChapterNo,

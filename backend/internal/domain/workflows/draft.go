@@ -19,11 +19,15 @@ const (
 )
 
 type DraftInput struct {
-	BookID      int64  `json:"bookId" binding:"required"`
-	ChapterNo   int    `json:"chapterNo" binding:"required"`
-	Provider    string `json:"provider"`
-	Model       string `json:"model"`
-	TargetWords int    `json:"targetWords"`
+	BookID      int64                  `json:"bookId" binding:"required"`
+	ChapterNo   int                    `json:"chapterNo" binding:"required"`
+	Provider    string                 `json:"provider"`
+	Model       string                 `json:"model"`
+	LowModel    string                 `json:"lowModel"`
+	MidModel    string                 `json:"midModel"`
+	HighModel   string                 `json:"highModel"`
+	LLMConfig   *llm.ResolvedLLMConfig `json:"llmConfig,omitempty"`
+	TargetWords int                    `json:"targetWords"`
 }
 
 type DraftOutput struct {
@@ -45,7 +49,7 @@ func NewDraftWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory)
 }
 
 func (w *DraftWorkflow) Run(ctx context.Context, in DraftInput, notify StageNotifier) (*DraftOutput, error) {
-	llmCli, err := w.llmF.Create(llm.ProviderName(in.Provider))
+	llmCli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +87,7 @@ func (w *DraftWorkflow) Run(ctx context.Context, in DraftInput, notify StageNoti
 	}
 
 	Notify(notify, shared.WorkflowStageGeneratingDraft, 60)
-	model := llm.ResolveModel(w.cfg, in.Model, llm.TierHigh)
+	model := resolveModel(in.LLMConfig, w.cfg, in.Model, llm.TierHigh)
 	res, err := llmCli.Generate(ctx, llm.GenerateParams{
 		Model: model,
 		Messages: planning.BuildDraftPrompt(planning.DraftPromptInput{

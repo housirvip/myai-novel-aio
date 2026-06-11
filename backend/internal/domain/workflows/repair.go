@@ -14,10 +14,14 @@ import (
 )
 
 type RepairInput struct {
-	BookID    int64  `json:"bookId" binding:"required"`
-	ChapterNo int    `json:"chapterNo" binding:"required"`
-	Provider  string `json:"provider"`
-	Model     string `json:"model"`
+	BookID    int64                  `json:"bookId" binding:"required"`
+	ChapterNo int                    `json:"chapterNo" binding:"required"`
+	Provider  string                 `json:"provider"`
+	Model     string                 `json:"model"`
+	LowModel  string                 `json:"lowModel"`
+	MidModel  string                 `json:"midModel"`
+	HighModel string                 `json:"highModel"`
+	LLMConfig *llm.ResolvedLLMConfig `json:"llmConfig,omitempty"`
 }
 
 type RepairOutput struct {
@@ -40,7 +44,7 @@ func NewRepairWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory
 }
 
 func (w *RepairWorkflow) Run(ctx context.Context, in RepairInput, notify StageNotifier) (*RepairOutput, error) {
-	llmCli, err := w.llmF.Create(llm.ProviderName(in.Provider))
+	llmCli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +78,7 @@ func (w *RepairWorkflow) Run(ctx context.Context, in RepairInput, notify StageNo
 
 	Notify(notify, shared.WorkflowStageGeneratingRepair, 80)
 	res, err := llmCli.Generate(ctx, llm.GenerateParams{
-		Model: llm.ResolveModel(w.cfg, in.Model, llm.TierHigh),
+		Model: resolveModel(in.LLMConfig, w.cfg, in.Model, llm.TierHigh),
 		Messages: planning.BuildRepairPrompt(planning.RepairPromptInput{
 			PlanContent: plan.Content, DraftContent: draft.Content, ReviewContent: review.RawResult,
 			IntentConstraints: intent, RetrievedContext: retrievedCtx,

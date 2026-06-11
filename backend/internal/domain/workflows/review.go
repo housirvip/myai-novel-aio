@@ -15,10 +15,14 @@ import (
 )
 
 type ReviewInput struct {
-	BookID    int64  `json:"bookId" binding:"required"`
-	ChapterNo int    `json:"chapterNo" binding:"required"`
-	Provider  string `json:"provider"`
-	Model     string `json:"model"`
+	BookID    int64                  `json:"bookId" binding:"required"`
+	ChapterNo int                    `json:"chapterNo" binding:"required"`
+	Provider  string                 `json:"provider"`
+	Model     string                 `json:"model"`
+	LowModel  string                 `json:"lowModel"`
+	MidModel  string                 `json:"midModel"`
+	HighModel string                 `json:"highModel"`
+	LLMConfig *llm.ResolvedLLMConfig `json:"llmConfig,omitempty"`
 }
 
 type ReviewOutput struct {
@@ -48,7 +52,7 @@ type reviewParsed struct {
 }
 
 func (w *ReviewWorkflow) Run(ctx context.Context, in ReviewInput, notify StageNotifier) (*ReviewOutput, error) {
-	llmCli, err := w.llmF.Create(llm.ProviderName(in.Provider))
+	llmCli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +81,7 @@ func (w *ReviewWorkflow) Run(ctx context.Context, in ReviewInput, notify StageNo
 
 	Notify(notify, shared.WorkflowStageGeneratingReview, 70)
 	res, err := llmCli.Generate(ctx, llm.GenerateParams{
-		Model:          llm.ResolveModel(w.cfg, in.Model, llm.TierMid),
+		Model:          resolveModel(in.LLMConfig, w.cfg, in.Model, llm.TierMid),
 		ResponseFormat: llm.ResponseFormatJSON,
 		Messages: planning.BuildReviewPrompt(planning.ReviewPromptInput{
 			PlanContent: plan.Content, DraftContent: draft.Content, RetrievedContext: retrievedCtx,

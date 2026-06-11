@@ -6,9 +6,12 @@ import (
 
 	"gorm.io/gorm"
 
+	"myai-novel-go/internal/config"
 	"myai-novel-go/internal/db/models"
 	"myai-novel-go/internal/domain/planning"
 	"myai-novel-go/internal/domain/shared"
+	"myai-novel-go/internal/llm"
+	"myai-novel-go/internal/llmfactory"
 )
 
 // StageNotifier 用于在 LLM 长任务过程中向 workflow_tasks 写阶段进度。
@@ -115,4 +118,18 @@ func nextVersion(tx *gorm.DB, table string, chapterID int64) (int, error) {
 		return 0, err
 	}
 	return n + 1, nil
+}
+
+func createLLMClient(llmF *llmfactory.Factory, rc *llm.ResolvedLLMConfig, fallbackProvider string) (llm.Client, error) {
+	if rc != nil {
+		return llmF.CreateWithConfig(rc)
+	}
+	return llmF.Create(llm.ProviderName(fallbackProvider))
+}
+
+func resolveModel(rc *llm.ResolvedLLMConfig, cfg *config.Config, explicit string, tier llm.ModelTier) string {
+	if rc != nil {
+		return llm.ResolveModelFromConfig(rc, explicit, tier)
+	}
+	return llm.ResolveModel(cfg, explicit, tier)
 }

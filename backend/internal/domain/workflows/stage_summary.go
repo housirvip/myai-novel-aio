@@ -12,12 +12,16 @@ import (
 )
 
 type StageSummaryInput struct {
-	BookID    int64  `json:"bookId" binding:"required"`
-	ChapterNo int    `json:"chapterNo" binding:"required"`
-	Stage     string `json:"stage" binding:"required,oneof=plan draft final"`
-	Content   string `json:"content" binding:"required,min=1"`
-	Provider  string `json:"provider"`
-	Model     string `json:"model"`
+	BookID    int64                  `json:"bookId" binding:"required"`
+	ChapterNo int                    `json:"chapterNo" binding:"required"`
+	Stage     string                 `json:"stage" binding:"required,oneof=plan draft final"`
+	Content   string                 `json:"content" binding:"required,min=1"`
+	Provider  string                 `json:"provider"`
+	Model     string                 `json:"model"`
+	LowModel  string                 `json:"lowModel"`
+	MidModel  string                 `json:"midModel"`
+	HighModel string                 `json:"highModel"`
+	LLMConfig *llm.ResolvedLLMConfig `json:"llmConfig,omitempty"`
 }
 
 type StageSummaryOutput struct {
@@ -35,12 +39,12 @@ func NewStageSummaryWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.F
 }
 
 func (w *StageSummaryWorkflow) Run(ctx context.Context, in StageSummaryInput) (*StageSummaryOutput, error) {
-	cli, err := w.llmF.Create(llm.ProviderName(in.Provider))
+	cli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
 	}
 	res, err := cli.Generate(ctx, llm.GenerateParams{
-		Model:    llm.ResolveModel(w.cfg, in.Model, llm.TierLow),
+		Model:    resolveModel(in.LLMConfig, w.cfg, in.Model, llm.TierLow),
 		Messages: planning.BuildStageSummaryPrompt(in.Stage, in.Content),
 	})
 	if err != nil {
