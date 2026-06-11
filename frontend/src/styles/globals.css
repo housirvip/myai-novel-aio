@@ -105,9 +105,10 @@ select:focus-visible,
   }
 
   .prose-zh {
-    line-height: 1.85;
+    line-height: 1.9;
     letter-spacing: 0.04em;
     text-indent: 2em;
+    overflow-wrap: anywhere;
   }
 
   .stat-card {
