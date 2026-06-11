@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { useAuth } from "@/app/auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatApiErrorMessage } from "@/lib/api";
+
+const appIconUrl = `${import.meta.env.BASE_URL}app-icon.png`;
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ export function RegisterPage() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -35,41 +38,96 @@ export function RegisterPage() {
   };
 
   return (
-    <section className="relative mx-auto flex min-h-screen max-w-md items-center overflow-hidden px-4 py-10">
-      {/* Decorative gradient orbs */}
-      <div className="pointer-events-none absolute -top-32 -left-32 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -right-24 h-48 w-48 rounded-full bg-accent/15 blur-3xl" />
-      <div className="pointer-events-none absolute top-1/3 right-0 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
+    <section className="flex min-h-screen flex-col lg:flex-row">
+      {/* Brand panel — desktop */}
+      <div className="relative hidden lg:flex lg:w-1/2 flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary/80 to-accent/60">
+        <div className="pointer-events-none absolute -top-40 -left-40 h-80 w-80 rounded-full bg-white/10 blur-[100px] animate-float" />
+        <div className="pointer-events-none absolute -bottom-32 -right-32 h-64 w-64 rounded-full bg-accent/20 blur-[80px] animate-float-slow" />
+        <div className="pointer-events-none absolute top-1/4 right-1/4 h-48 w-48 rounded-full bg-white/5 blur-[60px] animate-float-slower" />
 
-      <Card className="relative w-full shadow-elevation-3 animate-fade-up">
-        <CardHeader className="p-8 pb-0">
-          <CardTitle className="text-2xl text-foreground">注册账号</CardTitle>
-          <CardDescription>注册后会自动进入你的个人书籍空间。</CardDescription>
-        </CardHeader>
-        <CardContent className="p-8 pt-6">
-          <div className="space-y-4">
+        <div className="relative z-10 flex flex-col items-center px-8 text-center">
+          <img src={appIconUrl} alt="AI 小说工作台" className="h-20 w-20 rounded-2xl shadow-glow-lg" />
+          <h1 className="mt-6 text-3xl font-bold text-primary-foreground">AI 小说工作台</h1>
+          <p className="mt-2 max-w-xs text-primary-foreground/70">多用户 AI 协同写作平台，让创作更自由。</p>
+        </div>
+      </div>
+
+      {/* Brand strip — mobile */}
+      <div className="flex lg:hidden flex-col items-center gap-3 bg-gradient-to-br from-primary via-primary/80 to-accent/60 px-6 py-10">
+        <img src={appIconUrl} alt="AI 小说工作台" className="h-14 w-14 rounded-xl shadow-glow-sm" />
+        <h1 className="text-2xl font-bold text-primary-foreground">AI 小说工作台</h1>
+        <p className="text-sm text-primary-foreground/70">多用户 AI 协同写作平台，让创作更自由。</p>
+      </div>
+
+      {/* Form panel */}
+      <div className="flex flex-1 items-center justify-center bg-background px-6 py-12 lg:w-1/2">
+        <div className="w-full max-w-sm animate-fade-up">
+          <h2 className="text-2xl font-semibold text-foreground">创建账号</h2>
+          <p className="mt-1 text-sm text-muted-foreground">注册后会自动进入你的个人书籍空间。</p>
+
+          <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="mt-8 space-y-4">
             <label className="block space-y-2 text-sm text-muted-foreground">
               <span>显示名称</span>
-              <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="nickname" />
+              <Input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                autoComplete="nickname"
+              />
             </label>
             <label className="block space-y-2 text-sm text-muted-foreground">
               <span>邮箱</span>
-              <Input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" />
+              <Input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                autoComplete="email"
+              />
             </label>
             <label className="block space-y-2 text-sm text-muted-foreground">
               <span>密码</span>
-              <Input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="new-password" />
+              <div className="relative">
+                <Input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </label>
-            {errorMessage && <Alert variant="destructive"><AlertDescription>{errorMessage}</AlertDescription></Alert>}
-            <Button onClick={submit} disabled={submitting || !displayName.trim() || !email.trim() || password.length < 8} className="w-full">
-              {submitting ? "注册中..." : "注册并进入"}
+
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+
+            <Button type="submit" disabled={submitting || !displayName.trim() || !email.trim() || password.length < 8} className="w-full" size="lg">
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  注册中...
+                </>
+              ) : (
+                "注册并进入"
+              )}
             </Button>
-          </div>
-          <div className="mt-5 text-sm text-muted-foreground">
-            已有账号？ <Link to="/app/login" className="text-primary hover:underline">去登录</Link>
-          </div>
-        </CardContent>
-      </Card>
+
+            <div className="text-center text-sm text-muted-foreground">
+              已有账号？ <Link to="/app/login" className="text-primary hover:underline">去登录</Link>
+            </div>
+          </form>
+        </div>
+      </div>
     </section>
   );
 }

@@ -144,6 +144,7 @@ select:focus-visible,
     height: 2px;
     background: linear-gradient(90deg, hsl(var(--primary)), hsl(330 70% 65%));
   }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -154,6 +155,12 @@ select:focus-visible,
   .animate-fade-up,
   .animate-fade-in,
   .animate-scale-in {
+    animation: none !important;
+  }
+
+  .animate-float,
+  .animate-float-slow,
+  .animate-float-slower {
     animation: none !important;
   }
 }

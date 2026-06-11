@@ -99,11 +99,18 @@ const config: Config = {
           "0%": { opacity: "0", transform: "scale(0.95)" },
           "100%": { opacity: "1", transform: "scale(1)" },
         },
+        float: {
+          "0%, 100%": { transform: "translateY(0) scale(1)" },
+          "50%": { transform: "translateY(-20px) scale(1.05)" },
+        },
       },
       animation: {
         "fade-up": "fade-up 0.4s cubic-bezier(0.19, 1, 0.22, 1)",
         "fade-in": "fade-in 0.3s ease-out",
         "scale-in": "scale-in 0.3s cubic-bezier(0.19, 1, 0.22, 1)",
+        float: "float 8s ease-in-out infinite",
+        "float-slow": "float 12s ease-in-out infinite",
+        "float-slower": "float 16s ease-in-out infinite",
       },
       fontFamily: {
         sans: [

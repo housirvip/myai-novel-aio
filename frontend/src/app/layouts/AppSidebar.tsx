@@ -95,7 +95,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       <Separator />
 
       {/* General navigation */}
-      <nav className="flex flex-col gap-1 px-2 py-2">
+      <nav className="flex flex-col gap-1.5 px-2 py-3">
         {generalNav.map((item) => {
           const Icon = item.icon;
           return (
@@ -106,7 +106,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               title={collapsed ? item.label : undefined}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-2 rounded-lg border-l-[3px] px-2 py-1.5 text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-3 rounded-lg border-l-[3px] px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   collapsed && "justify-center border-l-0",
                   isActive
                     ? "border-l-primary bg-sidebar-accent text-sidebar-accent-foreground"
@@ -114,7 +114,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                 )
               }
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-5 w-5 shrink-0" />
               {!collapsed && <span>{item.label}</span>}
             </NavLink>
           );
@@ -142,7 +142,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               </div>
             )}
 
-            <nav className="flex flex-col gap-1">
+            <nav className="flex flex-col gap-1.5">
               {bookNav.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -153,7 +153,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                     title={collapsed ? item.label : undefined}
                     className={({ isActive }) =>
                       cn(
-                        "flex items-center gap-2 rounded-lg border-l-[3px] px-2 py-1.5 text-sm font-medium transition-all duration-200",
+                        "flex items-center gap-3 rounded-lg border-l-[3px] px-3 py-2.5 text-sm font-medium transition-all duration-200",
                         collapsed && "justify-center border-l-0",
                         (item.isActive !== undefined ? item.isActive : isActive)
                           ? "border-l-primary bg-primary/10 text-primary shadow-glow-sm"
@@ -161,7 +161,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                       )
                     }
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon className="h-5 w-5 shrink-0" />
                     {!collapsed && <span>{item.label}</span>}
                   </NavLink>
                 );
