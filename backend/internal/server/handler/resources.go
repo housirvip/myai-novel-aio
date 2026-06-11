@@ -79,6 +79,7 @@ func (h *ResourceHandlers) outlineCreate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "outline", "created", bookID, row.ID)
 	created(c, row)
 }
 
@@ -106,6 +107,7 @@ func (h *ResourceHandlers) outlineUpdate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "outline", "updated", bookID, id)
 	ok(c, row)
 }
 
@@ -116,6 +118,7 @@ func (h *ResourceHandlers) outlineDelete(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "outline", "deleted", bookID, id)
 	ok(c, gin.H{"ok": true})
 }
 
@@ -157,6 +160,7 @@ func (h *ResourceHandlers) wsCreate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "world_setting", "created", bookID, row.ID)
 	created(c, row)
 }
 
@@ -184,6 +188,7 @@ func (h *ResourceHandlers) wsUpdate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "world_setting", "updated", bookID, id)
 	ok(c, row)
 }
 
@@ -194,6 +199,7 @@ func (h *ResourceHandlers) wsDelete(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "world_setting", "deleted", bookID, id)
 	ok(c, gin.H{"ok": true})
 }
 
@@ -235,6 +241,7 @@ func (h *ResourceHandlers) charCreate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "character", "created", bookID, row.ID)
 	created(c, row)
 }
 
@@ -262,6 +269,7 @@ func (h *ResourceHandlers) charUpdate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "character", "updated", bookID, id)
 	ok(c, row)
 }
 
@@ -272,6 +280,7 @@ func (h *ResourceHandlers) charDelete(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "character", "deleted", bookID, id)
 	ok(c, gin.H{"ok": true})
 }
 
@@ -313,6 +322,7 @@ func (h *ResourceHandlers) facCreate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "faction", "created", bookID, row.ID)
 	created(c, row)
 }
 
@@ -340,6 +350,7 @@ func (h *ResourceHandlers) facUpdate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "faction", "updated", bookID, id)
 	ok(c, row)
 }
 
@@ -350,6 +361,7 @@ func (h *ResourceHandlers) facDelete(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "faction", "deleted", bookID, id)
 	ok(c, gin.H{"ok": true})
 }
 
@@ -391,6 +403,7 @@ func (h *ResourceHandlers) relCreate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "relation", "created", bookID, row.ID)
 	created(c, row)
 }
 
@@ -418,6 +431,7 @@ func (h *ResourceHandlers) relUpdate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "relation", "updated", bookID, id)
 	ok(c, row)
 }
 
@@ -428,6 +442,7 @@ func (h *ResourceHandlers) relDelete(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "relation", "deleted", bookID, id)
 	ok(c, gin.H{"ok": true})
 }
 
@@ -469,6 +484,7 @@ func (h *ResourceHandlers) itemCreate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "item", "created", bookID, row.ID)
 	created(c, row)
 }
 
@@ -496,6 +512,7 @@ func (h *ResourceHandlers) itemUpdate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "item", "updated", bookID, id)
 	ok(c, row)
 }
 
@@ -506,6 +523,7 @@ func (h *ResourceHandlers) itemDelete(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "item", "deleted", bookID, id)
 	ok(c, gin.H{"ok": true})
 }
 
@@ -547,6 +565,7 @@ func (h *ResourceHandlers) hookCreate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "story_hook", "created", bookID, row.ID)
 	created(c, row)
 }
 
@@ -574,6 +593,7 @@ func (h *ResourceHandlers) hookUpdate(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "story_hook", "updated", bookID, id)
 	ok(c, row)
 }
 
@@ -584,5 +604,6 @@ func (h *ResourceHandlers) hookDelete(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "story_hook", "deleted", bookID, id)
 	ok(c, gin.H{"ok": true})
 }

@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"myai-novel-go/internal/domain/chapter"
 	"myai-novel-go/internal/domain/shared"
@@ -70,6 +71,7 @@ func (h *ChapterHandler) create(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	middleware.Logger(c).Info("chapter.created", zap.Int64("bookId", bookID), zap.Int("chapterNo", in.ChapterNo))
 	created(c, row)
 }
 
@@ -105,6 +107,7 @@ func (h *ChapterHandler) update(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	middleware.Logger(c).Info("chapter.updated", zap.Int64("bookId", bookID), zap.Int("chapterNo", cn))
 	ok(c, row)
 }
 
@@ -115,6 +118,7 @@ func (h *ChapterHandler) delete(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	middleware.Logger(c).Info("chapter.deleted", zap.Int64("bookId", bookID), zap.Int("chapterNo", cn))
 	ok(c, gin.H{"ok": true})
 }
 
@@ -180,6 +184,7 @@ func (h *ChapterHandler) writeStage(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	middleware.Logger(c).Info("chapter.stage_written", zap.Int64("bookId", bookID), zap.Int("chapterNo", cn), zap.String("stage", stage))
 	ok(c, v)
 }
 
@@ -272,6 +277,7 @@ func (h *ChapterHandler) importStage(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	middleware.Logger(c).Info("chapter.stage_imported", zap.Int64("bookId", bookID), zap.Int("chapterNo", cn), zap.String("stage", stage))
 	created(c, entry)
 }
 

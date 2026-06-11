@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"myai-novel-go/internal/config"
 	usersettings "myai-novel-go/internal/domain/user_settings"
@@ -46,6 +47,7 @@ func (h *UserSettingsHandler) update(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	middleware.Logger(c).Info("user_settings.updated", zap.Int64("userId", user.ID))
 	ok(c, buildUserRuntimeSettingsView(h.cfg, out))
 }
 
@@ -55,5 +57,6 @@ func (h *UserSettingsHandler) clear(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	middleware.Logger(c).Info("user_settings.cleared", zap.Int64("userId", user.ID))
 	ok(c, buildUserRuntimeSettingsView(h.cfg, &usersettings.RuntimeOverrides{}))
 }

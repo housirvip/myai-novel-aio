@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"myai-novel-go/internal/domain/planning"
@@ -36,10 +37,12 @@ func (h *EmbeddingHandler) refresh(c *gin.Context) {
 		return
 	}
 	svc := planning.NewRefreshService(h.db, client, store)
+	middleware.Logger(c).Info("embedding.refresh.started", zap.Int64("bookId", bookID), zap.String("model", client.Model()))
 	counts, err := svc.Refresh(c.Request.Context(), bookID)
 	if err != nil {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	middleware.Logger(c).Info("embedding.refresh.completed", zap.Int64("bookId", bookID))
 	ok(c, gin.H{"refreshed": counts, "model": client.Model()})
 }

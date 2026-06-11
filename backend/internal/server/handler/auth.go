@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"myai-novel-go/internal/config"
 	"myai-novel-go/internal/domain/auth"
@@ -49,6 +50,7 @@ func (h *AuthHandler) register(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	middleware.Logger(c).Info("auth.register.success", zap.Int64("userId", res.User.ID), zap.String("email", in.Email))
 	h.writeSessionCookie(c, res.SessionToken)
 	signed := h.svc.SignSessionToken(res.SessionToken)
 	created(c, gin.H{"user": res.User, "token": signed})
@@ -62,9 +64,11 @@ func (h *AuthHandler) login(c *gin.Context) {
 	}
 	res, err := h.svc.Login(c.Request.Context(), in.Email, in.Password)
 	if err != nil {
+		middleware.Logger(c).Warn("auth.login.failed", zap.String("email", in.Email))
 		middleware.AbortWithError(c, err)
 		return
 	}
+	middleware.Logger(c).Info("auth.login.success", zap.Int64("userId", res.User.ID))
 	h.writeSessionCookie(c, res.SessionToken)
 	signed := h.svc.SignSessionToken(res.SessionToken)
 	ok(c, gin.H{"user": res.User, "token": signed})
@@ -82,6 +86,7 @@ func (h *AuthHandler) logout(c *gin.Context) {
 		_ = h.svc.Logout(c.Request.Context(), token)
 	}
 	h.clearSessionCookie(c)
+	middleware.Logger(c).Info("auth.logout")
 	ok(c, gin.H{"ok": true})
 }
 

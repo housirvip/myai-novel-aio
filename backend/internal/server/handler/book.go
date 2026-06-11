@@ -58,6 +58,7 @@ func (h *BookHandler) create(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "book", "created", row.ID, row.ID)
 	created(c, row)
 }
 
@@ -91,6 +92,7 @@ func (h *BookHandler) update(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "book", "updated", id, id)
 	ok(c, row)
 }
 
@@ -104,5 +106,6 @@ func (h *BookHandler) delete(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	logMutation(c, "book", "deleted", id, id)
 	ok(c, gin.H{"ok": true})
 }
