@@ -19,6 +19,10 @@ func NewCustom(cfg *config.Config, httpC *http.Client) *CustomClient {
 	return &CustomClient{inner: inner}
 }
 
+func NewCustomWrap(inner *OpenAIClient) *CustomClient {
+	return &CustomClient{inner: inner}
+}
+
 func (c *CustomClient) Generate(ctx context.Context, params llm.GenerateParams) (*llm.GenerateResult, error) {
 	if c.inner.baseURL == "" {
 		return nil, fmt.Errorf("CUSTOM_LLM_BASE_URL is required")

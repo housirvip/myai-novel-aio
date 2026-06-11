@@ -46,6 +46,57 @@ func (f *Factory) Create(provider llm.ProviderName) (llm.Client, error) {
 	return llm.WithRateLimit(client, f.limiter, timeout), nil
 }
 
+func (f *Factory) CreateWithConfig(rc *llm.ResolvedLLMConfig) (llm.Client, error) {
+	if rc == nil {
+		return f.Create("")
+	}
+	provider := llm.ProviderName(rc.Provider)
+	if provider == "" {
+		provider = llm.ProviderName(f.cfg.LLMProvider)
+	}
+	var client llm.Client
+	switch provider {
+	case llm.ProviderMock:
+		client = providers.NewMock(f.cfg)
+	case llm.ProviderOpenAI:
+		apiKey := firstNonEmpty(rc.OpenAIAPIKey, f.cfg.OpenAIAPIKey)
+		baseURL := firstNonEmpty(rc.OpenAIBaseURL, f.cfg.OpenAIBaseURL)
+		if baseURL == "" {
+			baseURL = "https://api.openai.com/v1"
+		}
+		model := firstNonEmpty(rc.Model, f.cfg.OpenAIModel)
+		client = providers.NewCompatible(baseURL, apiKey, model, f.httpC)
+	case llm.ProviderAnthropic:
+		apiKey := firstNonEmpty(rc.AnthropicAPIKey, f.cfg.AnthropicAPIKey)
+		baseURL := firstNonEmpty(rc.AnthropicBaseURL, f.cfg.AnthropicBaseURL)
+		model := firstNonEmpty(rc.Model, f.cfg.AnthropicModel)
+		maxTokens := rc.DefaultMaxTokens
+		if maxTokens <= 0 {
+			maxTokens = f.cfg.LLMDefaultMaxTokens
+		}
+		client = providers.NewAnthropicDirect(apiKey, baseURL, model, maxTokens, f.httpC)
+	case llm.ProviderCustom:
+		apiKey := firstNonEmpty(rc.CustomLLMAPIKey, f.cfg.CustomLLMAPIKey)
+		baseURL := firstNonEmpty(rc.CustomLLMBaseURL, f.cfg.CustomLLMBaseURL)
+		model := firstNonEmpty(rc.Model, f.cfg.CustomLLMModel)
+		inner := providers.NewCompatible(baseURL, apiKey, model, f.httpC)
+		client = providers.NewCustomWrap(inner)
+	default:
+		return nil, fmt.Errorf("unsupported LLM provider: %s", provider)
+	}
+	timeout := time.Duration(f.cfg.LLMRequestTimeoutSec) * time.Second
+	return llm.WithRateLimit(client, f.limiter, timeout), nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 // NewEmbedding 按 cfg.PlanningRetrievalEmbeddingProvider 创建嵌入客户端;
 // 返回 nil 表示禁用嵌入(provider=none),调用方据此跳过嵌入链路装配。
 func (f *Factory) NewEmbedding() llm.EmbeddingClient {

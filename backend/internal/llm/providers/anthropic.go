@@ -13,9 +13,11 @@ import (
 )
 
 type AnthropicClient struct {
-	cfg     *config.Config
-	baseURL string
-	httpC   *http.Client
+	baseURL          string
+	apiKey           string
+	defaultModel     string
+	defaultMaxTokens int
+	httpC            *http.Client
 }
 
 func NewAnthropic(cfg *config.Config, httpC *http.Client) *AnthropicClient {
@@ -23,7 +25,26 @@ func NewAnthropic(cfg *config.Config, httpC *http.Client) *AnthropicClient {
 	if base == "" {
 		base = "https://api.anthropic.com"
 	}
-	return &AnthropicClient{cfg: cfg, baseURL: base, httpC: httpC}
+	return &AnthropicClient{
+		baseURL:          base,
+		apiKey:           cfg.AnthropicAPIKey,
+		defaultModel:     cfg.AnthropicModel,
+		defaultMaxTokens: cfg.LLMDefaultMaxTokens,
+		httpC:            httpC,
+	}
+}
+
+func NewAnthropicDirect(apiKey, baseURL, defaultModel string, defaultMaxTokens int, httpC *http.Client) *AnthropicClient {
+	if baseURL == "" {
+		baseURL = "https://api.anthropic.com"
+	}
+	return &AnthropicClient{
+		baseURL:          baseURL,
+		apiKey:           apiKey,
+		defaultModel:     defaultModel,
+		defaultMaxTokens: defaultMaxTokens,
+		httpC:            httpC,
+	}
 }
 
 type anthropicReq struct {
@@ -52,12 +73,12 @@ type anthropicResp struct {
 }
 
 func (c *AnthropicClient) Generate(ctx context.Context, params llm.GenerateParams) (*llm.GenerateResult, error) {
-	if c.cfg.AnthropicAPIKey == "" {
+	if c.apiKey == "" {
 		return nil, fmt.Errorf("ANTHROPIC_API_KEY is required")
 	}
 	model := params.Model
 	if model == "" {
-		model = c.cfg.AnthropicModel
+		model = c.defaultModel
 	}
 
 	var system string
@@ -79,7 +100,7 @@ func (c *AnthropicClient) Generate(ctx context.Context, params llm.GenerateParam
 		system += "Return valid JSON only. Do not include markdown fences or extra explanation."
 	}
 
-	maxTokens := c.cfg.LLMDefaultMaxTokens
+	maxTokens := c.defaultMaxTokens
 	if params.MaxTokens != nil {
 		maxTokens = *params.MaxTokens
 	}
@@ -95,7 +116,7 @@ func (c *AnthropicClient) Generate(ctx context.Context, params llm.GenerateParam
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", c.cfg.AnthropicAPIKey)
+	req.Header.Set("x-api-key", c.apiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 
 	resp, err := c.httpC.Do(req)
