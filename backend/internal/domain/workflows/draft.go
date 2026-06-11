@@ -3,6 +3,7 @@ package workflows
 import (
 	"context"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"myai-novel-go/internal/config"
@@ -39,13 +40,14 @@ type DraftOutput struct {
 }
 
 type DraftWorkflow struct {
-	db   *gorm.DB
-	cfg  *config.Config
-	llmF *llmfactory.Factory
+	db     *gorm.DB
+	cfg    *config.Config
+	llmF   *llmfactory.Factory
+	logger *zap.Logger
 }
 
-func NewDraftWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory) *DraftWorkflow {
-	return &DraftWorkflow{db: db, cfg: cfg, llmF: llmF}
+func NewDraftWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory, logger *zap.Logger) *DraftWorkflow {
+	return &DraftWorkflow{db: db, cfg: cfg, llmF: llmF, logger: logger}
 }
 
 func (w *DraftWorkflow) Run(ctx context.Context, in DraftInput, notify StageNotifier) (*DraftOutput, error) {
@@ -85,6 +87,7 @@ func (w *DraftWorkflow) Run(ctx context.Context, in DraftInput, notify StageNoti
 			target = defaultTargetWords
 		}
 	}
+	w.logger.Info("workflow.draft.started", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.Int("targetWords", target))
 
 	Notify(notify, shared.WorkflowStageGeneratingDraft, 60)
 	model := resolveModel(in.LLMConfig, w.cfg, in.Model, llm.TierHigh)
@@ -104,10 +107,12 @@ func (w *DraftWorkflow) Run(ctx context.Context, in DraftInput, notify StageNoti
 		maxRounds = 0
 	}
 	wc := shared.EstimateWordCount(res.Content)
+	w.logger.Debug("workflow.draft.llm_draft.done", zap.Int("wordCount", wc))
 	for round := 1; round <= maxRounds; round++ {
 		if !shouldRepairLength(wc, target) {
 			break
 		}
+		w.logger.Debug("workflow.draft.length_repair", zap.Int("round", round), zap.Int("currentWc", wc), zap.Int("targetWords", target))
 		Notify(notify, shared.WorkflowStageRepairingLength, repairProgress(round, maxRounds))
 		var msgs []llm.Message
 		if shouldAggressivelyCompress(wc, target) {
@@ -180,6 +185,7 @@ func (w *DraftWorkflow) Run(ctx context.Context, in DraftInput, notify StageNoti
 	if err != nil {
 		return nil, err
 	}
+	w.logger.Info("workflow.draft.completed", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.Int64("draftId", out.DraftID), zap.Int("wordCount", wc))
 	return out, nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"myai-novel-go/internal/config"
@@ -48,10 +49,11 @@ type PlanWorkflow struct {
 	cfg       *config.Config
 	llmF      *llmfactory.Factory
 	retrieval *planning.RetrievalService
+	logger    *zap.Logger
 }
 
-func NewPlanWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory, r *planning.RetrievalService) *PlanWorkflow {
-	return &PlanWorkflow{db: db, cfg: cfg, llmF: llmF, retrieval: r}
+func NewPlanWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory, r *planning.RetrievalService, logger *zap.Logger) *PlanWorkflow {
+	return &PlanWorkflow{db: db, cfg: cfg, llmF: llmF, retrieval: r, logger: logger}
 }
 
 // AuthorIntentInput 是 /api/workflows/author-intent 入参。
@@ -77,6 +79,7 @@ type AuthorIntentOutput struct {
 // GenerateAuthorIntent 跑"初始检索 + 意图草案生成",
 // 不写库、不进入 plan 流水线,纯建议性输出。供 /api/workflows/author-intent 用。
 func (w *PlanWorkflow) GenerateAuthorIntent(ctx context.Context, in AuthorIntentInput, notify StageNotifier) (*AuthorIntentOutput, error) {
+	w.logger.Info("workflow.author_intent.started", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo))
 	llmCli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
@@ -110,6 +113,7 @@ func (w *PlanWorkflow) GenerateAuthorIntent(ctx context.Context, in AuthorIntent
 		return nil, err
 	}
 	Notify(notify, shared.WorkflowStageGeneratingAuthorIntent, 100)
+	w.logger.Info("workflow.author_intent.completed", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo))
 	return &AuthorIntentOutput{
 		BookID:       in.BookID,
 		ChapterNo:    in.ChapterNo,
@@ -122,6 +126,7 @@ func (w *PlanWorkflow) Run(ctx context.Context, in PlanInput, notify StageNotifi
 	if in.TargetWords == 0 {
 		in.TargetWords = defaultTargetWords
 	}
+	w.logger.Info("workflow.plan.started", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.Int("targetWords", in.TargetWords))
 
 	llmCli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
@@ -133,6 +138,7 @@ func (w *PlanWorkflow) Run(ctx context.Context, in PlanInput, notify StageNotifi
 	if err != nil {
 		return nil, err
 	}
+	w.logger.Debug("workflow.plan.chapter_loaded", zap.Int64("chapterId", chapter.ID))
 
 	Notify(notify, shared.WorkflowStageRetrievingInitial, 15)
 	initialCtx, err := w.retrieval.Retrieve(ctx, planning.RetrieveParams{
@@ -141,6 +147,7 @@ func (w *PlanWorkflow) Run(ctx context.Context, in PlanInput, notify StageNotifi
 	if err != nil {
 		return nil, err
 	}
+	w.logger.Debug("workflow.plan.retrieval_initial.done")
 
 	authorIntent := in.AuthorIntent
 	intentSource := shared.PlanIntentSourceUserInput
@@ -184,6 +191,7 @@ func (w *PlanWorkflow) Run(ctx context.Context, in PlanInput, notify StageNotifi
 	}
 	extracted := planning.NormalizeExtractedIntent(kwRes.Content)
 	keywords, queryText := planning.BuildRetrievalQuery(extracted)
+	w.logger.Debug("workflow.plan.keywords_extracted", zap.Int("keywordCount", len(keywords)))
 
 	Notify(notify, shared.WorkflowStageRetrievingFinal, 60)
 	finalCtx, err := w.retrieval.Retrieve(ctx, planning.RetrieveParams{
@@ -194,6 +202,7 @@ func (w *PlanWorkflow) Run(ctx context.Context, in PlanInput, notify StageNotifi
 	if err != nil {
 		return nil, err
 	}
+	w.logger.Debug("workflow.plan.retrieval_final.done")
 
 	Notify(notify, shared.WorkflowStageGeneratingPlan, 80)
 	intentConstraints := planning.IntentConstraints{
@@ -215,6 +224,7 @@ func (w *PlanWorkflow) Run(ctx context.Context, in PlanInput, notify StageNotifi
 	if err != nil {
 		return nil, err
 	}
+	w.logger.Debug("workflow.plan.llm_plan.done")
 
 	Notify(notify, shared.WorkflowStageSavingArtifacts, 95)
 	out := &PlanOutput{
@@ -280,6 +290,7 @@ func (w *PlanWorkflow) Run(ctx context.Context, in PlanInput, notify StageNotifi
 	if err != nil {
 		return nil, err
 	}
+	w.logger.Info("workflow.plan.completed", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.Int64("planId", out.PlanID))
 	return out, nil
 }
 

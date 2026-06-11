@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"myai-novel-go/internal/config"
@@ -34,13 +35,14 @@ type ReviewOutput struct {
 }
 
 type ReviewWorkflow struct {
-	db   *gorm.DB
-	cfg  *config.Config
-	llmF *llmfactory.Factory
+	db     *gorm.DB
+	cfg    *config.Config
+	llmF   *llmfactory.Factory
+	logger *zap.Logger
 }
 
-func NewReviewWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory) *ReviewWorkflow {
-	return &ReviewWorkflow{db: db, cfg: cfg, llmF: llmF}
+func NewReviewWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory, logger *zap.Logger) *ReviewWorkflow {
+	return &ReviewWorkflow{db: db, cfg: cfg, llmF: llmF, logger: logger}
 }
 
 type reviewParsed struct {
@@ -52,6 +54,7 @@ type reviewParsed struct {
 }
 
 func (w *ReviewWorkflow) Run(ctx context.Context, in ReviewInput, notify StageNotifier) (*ReviewOutput, error) {
+	w.logger.Info("workflow.review.started", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo))
 	llmCli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
@@ -93,6 +96,7 @@ func (w *ReviewWorkflow) Run(ctx context.Context, in ReviewInput, notify StageNo
 
 	parsed := reviewParsed{}
 	_ = json.Unmarshal([]byte(stripFence(res.Content)), &parsed)
+	w.logger.Debug("workflow.review.llm_review.done", zap.Int("issueCount", len(parsed.Issues)), zap.Int("riskCount", len(parsed.Risks)))
 
 	Notify(notify, shared.WorkflowStageSavingArtifacts, 95)
 	out := &ReviewOutput{ChapterID: chapter.ID, DraftID: draft.ID, RawResult: res.Content, Summary: parsed.Summary}
@@ -134,6 +138,7 @@ func (w *ReviewWorkflow) Run(ctx context.Context, in ReviewInput, notify StageNo
 	if err != nil {
 		return nil, err
 	}
+	w.logger.Info("workflow.review.completed", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.Int64("reviewId", out.ReviewID))
 	return out, nil
 }
 

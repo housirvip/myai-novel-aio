@@ -3,6 +3,7 @@ package workflows
 import (
 	"context"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"myai-novel-go/internal/config"
@@ -34,16 +35,18 @@ type RepairOutput struct {
 }
 
 type RepairWorkflow struct {
-	db   *gorm.DB
-	cfg  *config.Config
-	llmF *llmfactory.Factory
+	db     *gorm.DB
+	cfg    *config.Config
+	llmF   *llmfactory.Factory
+	logger *zap.Logger
 }
 
-func NewRepairWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory) *RepairWorkflow {
-	return &RepairWorkflow{db: db, cfg: cfg, llmF: llmF}
+func NewRepairWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory, logger *zap.Logger) *RepairWorkflow {
+	return &RepairWorkflow{db: db, cfg: cfg, llmF: llmF, logger: logger}
 }
 
 func (w *RepairWorkflow) Run(ctx context.Context, in RepairInput, notify StageNotifier) (*RepairOutput, error) {
+	w.logger.Info("workflow.repair.started", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo))
 	llmCli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
@@ -89,6 +92,7 @@ func (w *RepairWorkflow) Run(ctx context.Context, in RepairInput, notify StageNo
 	}
 
 	wc := shared.EstimateWordCount(res.Content)
+	w.logger.Debug("workflow.repair.llm_repair.done", zap.Int("wordCount", wc))
 	Notify(notify, shared.WorkflowStageSavingArtifacts, 95)
 	out := &RepairOutput{ChapterID: chapter.ID, BasedOnDraftID: draft.ID, BasedOnReviewID: review.ID, WordCount: wc, Content: res.Content}
 	err = w.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -124,5 +128,6 @@ func (w *RepairWorkflow) Run(ctx context.Context, in RepairInput, notify StageNo
 	if err != nil {
 		return nil, err
 	}
+	w.logger.Info("workflow.repair.completed", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.Int64("draftId", out.DraftID), zap.Int("wordCount", wc))
 	return out, nil
 }

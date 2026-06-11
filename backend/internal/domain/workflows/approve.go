@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"myai-novel-go/internal/config"
@@ -124,16 +125,18 @@ type EntityUpdate struct {
 }
 
 type ApproveWorkflow struct {
-	db   *gorm.DB
-	cfg  *config.Config
-	llmF *llmfactory.Factory
+	db     *gorm.DB
+	cfg    *config.Config
+	llmF   *llmfactory.Factory
+	logger *zap.Logger
 }
 
-func NewApproveWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory) *ApproveWorkflow {
-	return &ApproveWorkflow{db: db, cfg: cfg, llmF: llmF}
+func NewApproveWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory, logger *zap.Logger) *ApproveWorkflow {
+	return &ApproveWorkflow{db: db, cfg: cfg, llmF: llmF, logger: logger}
 }
 
 func (w *ApproveWorkflow) Run(ctx context.Context, in ApproveInput, notify StageNotifier) (*ApproveOutput, error) {
+	w.logger.Info("workflow.approve.started", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.Bool("dryRun", in.DryRun))
 	llmCli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
@@ -191,8 +194,10 @@ func (w *ApproveWorkflow) Run(ctx context.Context, in ApproveInput, notify Stage
 	if err != nil {
 		return nil, shared.BadRequestDetails("failed to parse approve diff", err.Error())
 	}
+	w.logger.Debug("workflow.approve.diff_extracted", zap.Int("newCharacters", len(diff.NewCharacters)), zap.Int("newFactions", len(diff.NewFactions)), zap.Int("updates", len(diff.Updates)))
 
 	wc := shared.EstimateWordCount(finalRes.Content)
+	w.logger.Debug("workflow.approve.llm_final.done", zap.Int("wordCount", wc))
 	out := &ApproveOutput{
 		ChapterID:    chapter.ID,
 		WordCount:    wc,
@@ -286,6 +291,7 @@ func (w *ApproveWorkflow) Run(ctx context.Context, in ApproveInput, notify Stage
 	if err != nil {
 		return nil, err
 	}
+	w.logger.Info("workflow.approve.completed", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.Int64("finalId", out.FinalID), zap.Int("appliedUpdates", out.AppliedUpdates), zap.Int("skippedUpdates", out.SkippedUpdates))
 	return out, nil
 }
 

@@ -3,6 +3,7 @@ package workflows
 import (
 	"context"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"myai-novel-go/internal/config"
@@ -29,16 +30,18 @@ type StageSummaryOutput struct {
 }
 
 type StageSummaryWorkflow struct {
-	db   *gorm.DB
-	cfg  *config.Config
-	llmF *llmfactory.Factory
+	db     *gorm.DB
+	cfg    *config.Config
+	llmF   *llmfactory.Factory
+	logger *zap.Logger
 }
 
-func NewStageSummaryWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory) *StageSummaryWorkflow {
-	return &StageSummaryWorkflow{db: db, cfg: cfg, llmF: llmF}
+func NewStageSummaryWorkflow(db *gorm.DB, cfg *config.Config, llmF *llmfactory.Factory, logger *zap.Logger) *StageSummaryWorkflow {
+	return &StageSummaryWorkflow{db: db, cfg: cfg, llmF: llmF, logger: logger}
 }
 
 func (w *StageSummaryWorkflow) Run(ctx context.Context, in StageSummaryInput) (*StageSummaryOutput, error) {
+	w.logger.Info("workflow.stage_summary.started", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.String("stage", in.Stage), zap.Int("contentLen", len(in.Content)))
 	cli, err := createLLMClient(w.llmF, in.LLMConfig, in.Provider)
 	if err != nil {
 		return nil, err
@@ -50,5 +53,6 @@ func (w *StageSummaryWorkflow) Run(ctx context.Context, in StageSummaryInput) (*
 	if err != nil {
 		return nil, err
 	}
+	w.logger.Info("workflow.stage_summary.completed", zap.Int64("bookId", in.BookID), zap.Int("chapterNo", in.ChapterNo), zap.Int("summaryLen", len(res.Content)))
 	return &StageSummaryOutput{Summary: res.Content}, nil
 }
