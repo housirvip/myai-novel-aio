@@ -40,7 +40,6 @@ type Config struct {
 
 	LogLevel             string
 	LogFormat            string
-	LogDir               string
 	LogLLMContent        bool
 	LogLLMContentMaxChar int
 
@@ -133,7 +132,6 @@ func Load() (*Config, error) {
 
 		LogLevel:             getEnumStr("LOG_LEVEL", "info", []string{"trace", "debug", "info", "warn", "error", "fatal"}),
 		LogFormat:            getEnumStr("LOG_FORMAT", "pretty", []string{"pretty", "json"}),
-		LogDir:               getStr("LOG_DIR", "./logs"),
 		LogLLMContent:        getBool("LOG_LLM_CONTENT_ENABLED", false),
 		LogLLMContentMaxChar: getInt("LOG_LLM_CONTENT_MAX_CHARS", 4000),
 
@@ -217,7 +215,6 @@ func Load() (*Config, error) {
 		ShutdownTimeoutSec:     getInt("SHUTDOWN_TIMEOUT_SECONDS", 15),
 	}
 
-	cfg.LogDir = absPath(cfg.LogDir)
 	cfg.DBSQLitePath = absPath(cfg.DBSQLitePath)
 	if cfg.MockLLMFixturePath != "" {
 		cfg.MockLLMFixturePath = absPath(cfg.MockLLMFixturePath)

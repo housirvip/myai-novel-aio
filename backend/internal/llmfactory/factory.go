@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/zap"
+
 	"myai-novel-go/internal/config"
 	"myai-novel-go/internal/llm"
 	"myai-novel-go/internal/llm/providers"
@@ -14,14 +16,16 @@ type Factory struct {
 	cfg     *config.Config
 	httpC   *http.Client
 	limiter *llm.Limiter
+	logger  *zap.Logger
 }
 
-func New(cfg *config.Config) *Factory {
+func New(cfg *config.Config, logger *zap.Logger) *Factory {
 	httpC := &http.Client{Timeout: time.Duration(cfg.LLMRequestTimeoutSec+30) * time.Second}
 	return &Factory{
 		cfg:     cfg,
 		httpC:   httpC,
 		limiter: llm.NewLimiter(cfg.LLMRateLimitRPS),
+		logger:  logger,
 	}
 }
 
@@ -43,7 +47,7 @@ func (f *Factory) Create(provider llm.ProviderName) (llm.Client, error) {
 		return nil, fmt.Errorf("unsupported LLM provider: %s", provider)
 	}
 	timeout := time.Duration(f.cfg.LLMRequestTimeoutSec) * time.Second
-	return llm.WithRateLimit(client, f.limiter, timeout), nil
+	return llm.WithRateLimit(client, f.limiter, timeout, f.logger, f.cfg.LogLLMContent, f.cfg.LogLLMContentMaxChar), nil
 }
 
 func (f *Factory) CreateWithConfig(rc *llm.ResolvedLLMConfig) (llm.Client, error) {
@@ -85,7 +89,7 @@ func (f *Factory) CreateWithConfig(rc *llm.ResolvedLLMConfig) (llm.Client, error
 		return nil, fmt.Errorf("unsupported LLM provider: %s", provider)
 	}
 	timeout := time.Duration(f.cfg.LLMRequestTimeoutSec) * time.Second
-	return llm.WithRateLimit(client, f.limiter, timeout), nil
+	return llm.WithRateLimit(client, f.limiter, timeout, f.logger, f.cfg.LogLLMContent, f.cfg.LogLLMContentMaxChar), nil
 }
 
 func firstNonEmpty(values ...string) string {
