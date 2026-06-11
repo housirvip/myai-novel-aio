@@ -29,4 +29,4 @@ frontend_pid=$!
 make dev-backend &
 backend_pid=$!
 
-wait -n "${frontend_pid}" "${backend_pid}"
+wait "${frontend_pid}" "${backend_pid}"
