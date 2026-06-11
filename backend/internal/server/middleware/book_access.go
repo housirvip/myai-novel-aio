@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"myai-novel-go/internal/db/models"
@@ -43,11 +44,13 @@ func RequireBookAccess(gdb *gorm.DB) gin.HandlerFunc {
 				c.Next()
 				return
 			}
+			Logger(c).Error("book.access.db_error", zap.Int64("bookId", bookID), zap.Error(err))
 			AbortWithError(c, err)
 			return
 		}
 		actor := GetActor(c)
 		if !ActorMayAccessBook(actor, book.OwnerUserID) {
+			Logger(c).Warn("book.access.denied", zap.Int64("bookId", bookID), zap.String("actorKind", string(actor.Kind)), zap.Int64("actorUserId", actor.UserID))
 			AbortWithError(c, shared.Forbidden("forbidden: book belongs to another user"))
 			return
 		}

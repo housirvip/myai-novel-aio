@@ -51,7 +51,10 @@ func Recovery(rootLogger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if r := recover(); r != nil {
-				l := getLogger(c, rootLogger)
+				l := Logger(c)
+				if l == zap.NewNop() {
+					l = rootLogger
+				}
 				l.Error("http.request.panic",
 					zap.Any("panic", r),
 					zap.String("stack", string(debug.Stack())),
@@ -75,17 +78,20 @@ func ErrorResponder() gin.HandlerFunc {
 			return
 		}
 		err := c.Errors.Last().Err
-		writeError(c, err)
+		l := Logger(c)
+		var appErr *shared.AppError
+		if errors.As(err, &appErr) {
+			if appErr.Status >= 500 {
+				l.Error("http.request.error", zap.Int("statusCode", appErr.Status), zap.String("code", appErr.Code), zap.Error(err))
+			} else {
+				l.Warn("http.request.client_error", zap.Int("statusCode", appErr.Status), zap.String("code", appErr.Code))
+			}
+			writeErrorJSON(c, appErr.Status, appErr.Code, appErr.Message, appErr.Details)
+			return
+		}
+		l.Error("http.request.error", zap.Int("statusCode", 500), zap.String("code", "internal_error"), zap.Error(err))
+		writeErrorJSON(c, http.StatusInternalServerError, "internal_error", "Internal server error", nil)
 	}
-}
-
-func writeError(c *gin.Context, err error) {
-	var appErr *shared.AppError
-	if errors.As(err, &appErr) {
-		writeErrorJSON(c, appErr.Status, appErr.Code, appErr.Message, appErr.Details)
-		return
-	}
-	writeErrorJSON(c, http.StatusInternalServerError, "internal_error", err.Error(), nil)
 }
 
 func writeErrorJSON(c *gin.Context, status int, code, message string, details any) {
@@ -99,16 +105,6 @@ func writeErrorJSON(c *gin.Context, status int, code, message string, details an
 		body["error"].(gin.H)["details"] = details
 	}
 	c.AbortWithStatusJSON(status, body)
-}
-
-func getLogger(c *gin.Context, fallback *zap.Logger) *zap.Logger {
-	v, ok := c.Get(CtxLoggerKey)
-	if ok {
-		if l, ok := v.(*zap.Logger); ok {
-			return l
-		}
-	}
-	return fallback
 }
 
 // Logger 返回请求 scope 的 logger,用于 handler 内部

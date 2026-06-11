@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"myai-novel-go/internal/domain/auth"
 	"myai-novel-go/internal/domain/shared"
@@ -69,16 +70,30 @@ func SessionMiddleware(authSvc *auth.Service, cookieName string) gin.HandlerFunc
 		}
 		token := authSvc.VerifySignedSessionToken(raw)
 		if token == "" {
+			if raw != "" {
+				Logger(c).Warn("auth.session.token_invalid")
+			}
 			c.Next()
 			return
 		}
 		user, err := authSvc.GetSessionUser(c.Request.Context(), token)
-		if err != nil || user == nil {
+		if err != nil {
+			Logger(c).Warn("auth.session.lookup_failed", zap.Error(err))
+			c.Next()
+			return
+		}
+		if user == nil {
 			c.Next()
 			return
 		}
 		c.Set(CtxActorKey, Actor{Kind: ActorUser, UserID: user.ID})
 		c.Set(CtxCurrentUserKey, user)
+		if l, exists := c.Get(CtxLoggerKey); exists {
+			if logger, ok := l.(*zap.Logger); ok {
+				c.Set(CtxLoggerKey, logger.With(zap.Int64("userId", user.ID)))
+			}
+		}
+		Logger(c).Debug("auth.session.resolved", zap.Int64("userId", user.ID))
 		c.Next()
 	}
 }

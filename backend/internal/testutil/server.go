@@ -23,7 +23,6 @@ func NewTestServer(t *testing.T, envOverrides map[string]string) (*httptest.Serv
 	t.Setenv("MOCK_LLM_MODE", "echo")
 	t.Setenv("LOG_LEVEL", "warn")
 	t.Setenv("LOG_FORMAT", "json")
-	t.Setenv("LOG_DIR", t.TempDir())
 	t.Setenv("WORKFLOW_MAX_CONCURRENCY", "2")
 	for k, v := range envOverrides {
 		t.Setenv(k, v)

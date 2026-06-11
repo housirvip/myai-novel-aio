@@ -62,7 +62,7 @@ func New(cfg *config.Config, logger *zap.Logger, gdb *gorm.DB) *Server {
 	handler.RegisterHealth(root, cfg, gdb)
 
 	bookSvc := book.NewService(gdb)
-	chapterSvc := chapter.NewService(gdb)
+	chapterSvc := chapter.NewService(gdb, logger.Named("chapter"))
 	outlineSvc := outline.NewService(gdb)
 	wsSvc := world_setting.NewService(gdb)
 	charSvc := character.NewService(gdb)
@@ -71,18 +71,18 @@ func New(cfg *config.Config, logger *zap.Logger, gdb *gorm.DB) *Server {
 	itemSvc := item.NewService(gdb)
 	hookSvc := story_hook.NewService(gdb)
 
-	llmF := llmfactory.New(cfg)
+	llmF := llmfactory.New(cfg, logger.Named("llm"))
 	embClient := llmF.NewEmbedding()
-	retrievalSvc := planning.NewRetrievalServiceWithEmbedding(gdb, cfg, embClient)
-	planWF := workflows.NewPlanWorkflow(gdb, cfg, llmF, retrievalSvc)
-	draftWF := workflows.NewDraftWorkflow(gdb, cfg, llmF)
-	reviewWF := workflows.NewReviewWorkflow(gdb, cfg, llmF)
-	repairWF := workflows.NewRepairWorkflow(gdb, cfg, llmF)
-	approveWF := workflows.NewApproveWorkflow(gdb, cfg, llmF)
-	stageWF := workflows.NewStageSummaryWorkflow(gdb, cfg, llmF)
+	retrievalSvc := planning.NewRetrievalServiceWithEmbedding(gdb, cfg, embClient, logger.Named("planning"))
+	planWF := workflows.NewPlanWorkflow(gdb, cfg, llmF, retrievalSvc, logger.Named("workflow.plan"))
+	draftWF := workflows.NewDraftWorkflow(gdb, cfg, llmF, logger.Named("workflow.draft"))
+	reviewWF := workflows.NewReviewWorkflow(gdb, cfg, llmF, logger.Named("workflow.review"))
+	repairWF := workflows.NewRepairWorkflow(gdb, cfg, llmF, logger.Named("workflow.repair"))
+	approveWF := workflows.NewApproveWorkflow(gdb, cfg, llmF, logger.Named("workflow.approve"))
+	stageWF := workflows.NewStageSummaryWorkflow(gdb, cfg, llmF, logger.Named("workflow.stage_summary"))
 
-	runner := workflow.NewRunner(logger, cfg.WorkflowMaxConcurrency)
-	taskSvc := workflow.NewService(gdb, logger, cfg, userSettingsSvc, planWF, draftWF, reviewWF, repairWF, approveWF, stageWF)
+	runner := workflow.NewRunner(logger.Named("workflow.runner"), cfg.WorkflowMaxConcurrency)
+	taskSvc := workflow.NewService(gdb, logger.Named("workflow.task"), cfg, userSettingsSvc, planWF, draftWF, reviewWF, repairWF, approveWF, stageWF)
 	host, _ := os.Hostname()
 	scheduler := workflow.NewScheduler(gdb, runner, taskSvc, logger, host)
 
@@ -132,6 +132,7 @@ func (s *Server) Shutdown(ctx context.Context) {
 	}
 	s.scheduler.Shutdown(ctx)
 	s.runner.Shutdown(ctx)
+	_ = s.logger.Sync()
 }
 
 func (s *Server) Run(ctx context.Context) error {
