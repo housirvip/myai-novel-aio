@@ -82,7 +82,7 @@ func New(cfg *config.Config, logger *zap.Logger, gdb *gorm.DB) *Server {
 	stageWF := workflows.NewStageSummaryWorkflow(gdb, cfg, llmF)
 
 	runner := workflow.NewRunner(logger, cfg.WorkflowMaxConcurrency)
-	taskSvc := workflow.NewService(gdb, logger, planWF, draftWF, reviewWF, repairWF, approveWF, stageWF)
+	taskSvc := workflow.NewService(gdb, logger, cfg, userSettingsSvc, planWF, draftWF, reviewWF, repairWF, approveWF, stageWF)
 	host, _ := os.Hostname()
 	scheduler := workflow.NewScheduler(gdb, runner, taskSvc, logger, host)
 
@@ -92,7 +92,7 @@ func New(cfg *config.Config, logger *zap.Logger, gdb *gorm.DB) *Server {
 		Outline: outlineSvc, WorldSetting: wsSvc, Character: charSvc,
 		Faction: facSvc, Relation: relSvc, Item: itemSvc, StoryHook: hookSvc,
 	}).Register(root)
-	handler.NewWorkflowHandler(planWF, draftWF, reviewWF, repairWF, approveWF, stageWF, taskSvc).Register(root)
+	handler.NewWorkflowHandler(cfg, userSettingsSvc, planWF, draftWF, reviewWF, repairWF, approveWF, stageWF, taskSvc).Register(root)
 	handler.NewEmbeddingHandler(gdb, retrievalSvc).Register(root)
 	handler.NewAuthHandler(cfg, authSvc).Register(root)
 	handler.NewUserSettingsHandler(cfg, userSettingsSvc).Register(root)

@@ -5,6 +5,7 @@ import (
 
 	"myai-novel-go/internal/config"
 	usersettings "myai-novel-go/internal/domain/user_settings"
+	"myai-novel-go/internal/llm"
 )
 
 type userRuntimeSettingsView struct {
@@ -40,32 +41,17 @@ type runtimeCapabilitiesView struct {
 	SupportsSensitiveOverrides bool            `json:"supportsSensitiveOverrides"`
 }
 
-type resolvedRuntimeSettings struct {
-	Provider         string
-	Model            string
-	LowModel         string
-	MidModel         string
-	HighModel        string
-	DefaultMaxTokens int
-	OpenAIAPIKey     string
-	OpenAIBaseURL    string
-	AnthropicAPIKey  string
-	AnthropicBaseURL string
-	CustomLLMAPIKey  string
-	CustomLLMBaseURL string
-}
-
 func buildUserRuntimeSettingsView(cfg *config.Config, overrides *usersettings.RuntimeOverrides) userRuntimeSettingsView {
 	if overrides == nil {
 		overrides = &usersettings.RuntimeOverrides{}
 	}
-	serverDefaults := buildServerDefaultRuntimeSettings(cfg)
-	effective := resolveUserRuntimeSettings(cfg, overrides)
+	serverDefaults := usersettings.ResolveForRequest(cfg, nil, "", "", "", "")
+	effective := usersettings.ResolveForRequest(cfg, overrides, "", "", "", "")
 	return userRuntimeSettingsView{
 		Overrides:      buildOverridesView(overrides),
-		ServerDefaults: buildResolvedRuntimeSettingsView(serverDefaults),
-		Effective:      buildResolvedRuntimeSettingsView(effective),
-		Capabilities:   buildRuntimeCapabilitiesView(effective),
+		ServerDefaults: rcToView(serverDefaults),
+		Effective:      rcToView(effective),
+		Capabilities:   buildCapabilitiesView(effective),
 	}
 }
 
@@ -86,140 +72,33 @@ func buildOverridesView(overrides *usersettings.RuntimeOverrides) llmRuntimeSett
 	}
 }
 
-func buildServerDefaultRuntimeSettings(cfg *config.Config) resolvedRuntimeSettings {
-	provider := string(cfg.LLMProvider)
-	return resolvedRuntimeSettings{
-		Provider:         provider,
-		Model:            defaultProviderModel(cfg, provider),
-		LowModel:         strings.TrimSpace(cfg.LLMLowModel),
-		MidModel:         strings.TrimSpace(cfg.LLMMidModel),
-		HighModel:        strings.TrimSpace(cfg.LLMHighModel),
-		DefaultMaxTokens: cfg.LLMDefaultMaxTokens,
-		OpenAIAPIKey:     strings.TrimSpace(cfg.OpenAIAPIKey),
-		OpenAIBaseURL:    strings.TrimSpace(cfg.OpenAIBaseURL),
-		AnthropicAPIKey:  strings.TrimSpace(cfg.AnthropicAPIKey),
-		AnthropicBaseURL: strings.TrimSpace(cfg.AnthropicBaseURL),
-		CustomLLMAPIKey:  strings.TrimSpace(cfg.CustomLLMAPIKey),
-		CustomLLMBaseURL: strings.TrimSpace(cfg.CustomLLMBaseURL),
-	}
-}
-
-func resolveUserRuntimeSettings(cfg *config.Config, overrides *usersettings.RuntimeOverrides) resolvedRuntimeSettings {
-	serverDefaults := buildServerDefaultRuntimeSettings(cfg)
-	provider := serverDefaults.Provider
-	if v := optionalStringValue(overrides.LLMProvider); v != "" {
-		provider = v
-	}
-	model := optionalStringValue(overrides.LLMModel)
-	if model == "" {
-		model = defaultProviderModel(cfg, provider)
-	}
-	lowModel := optionalStringValue(overrides.LLMLowModel)
-	if lowModel == "" {
-		if serverDefaults.LowModel != "" {
-			lowModel = serverDefaults.LowModel
-		} else {
-			lowModel = model
-		}
-	}
-	midModel := optionalStringValue(overrides.LLMMidModel)
-	if midModel == "" {
-		if serverDefaults.MidModel != "" {
-			midModel = serverDefaults.MidModel
-		} else {
-			midModel = model
-		}
-	}
-	highModel := optionalStringValue(overrides.LLMHighModel)
-	if highModel == "" {
-		if serverDefaults.HighModel != "" {
-			highModel = serverDefaults.HighModel
-		} else {
-			highModel = model
-		}
-	}
-	defaultMaxTokens := cfg.LLMDefaultMaxTokens
-	if overrides.LLMDefaultMaxTokens != nil && *overrides.LLMDefaultMaxTokens > 0 {
-		defaultMaxTokens = *overrides.LLMDefaultMaxTokens
-	}
-	openAIAPIKey, openAIBaseURL := resolveProviderConnection(optionalStringValue(overrides.OpenAIAPIKey), optionalStringValue(overrides.OpenAIBaseURL), serverDefaults.OpenAIAPIKey, serverDefaults.OpenAIBaseURL, true)
-	anthropicAPIKey, anthropicBaseURL := resolveProviderConnection(optionalStringValue(overrides.AnthropicAPIKey), optionalStringValue(overrides.AnthropicBaseURL), serverDefaults.AnthropicAPIKey, serverDefaults.AnthropicBaseURL, true)
-	customLLMAPIKey, customLLMBaseURL := resolveProviderConnection(optionalStringValue(overrides.CustomLLMAPIKey), optionalStringValue(overrides.CustomLLMBaseURL), serverDefaults.CustomLLMAPIKey, serverDefaults.CustomLLMBaseURL, false)
-	return resolvedRuntimeSettings{
-		Provider:         provider,
-		Model:            model,
-		LowModel:         lowModel,
-		MidModel:         midModel,
-		HighModel:        highModel,
-		DefaultMaxTokens: defaultMaxTokens,
-		OpenAIAPIKey:     openAIAPIKey,
-		OpenAIBaseURL:    openAIBaseURL,
-		AnthropicAPIKey:  anthropicAPIKey,
-		AnthropicBaseURL: anthropicBaseURL,
-		CustomLLMAPIKey:  customLLMAPIKey,
-		CustomLLMBaseURL: customLLMBaseURL,
-	}
-}
-
-func resolveProviderConnection(overrideAPIKey, overrideBaseURL, envAPIKey, envBaseURL string, requireAPIKeyPairing bool) (string, string) {
-	hasOverrideAPIKey := overrideAPIKey != ""
-	hasOverrideBaseURL := overrideBaseURL != ""
-	if !hasOverrideAPIKey && !hasOverrideBaseURL {
-		return envAPIKey, envBaseURL
-	}
-	apiKey := envAPIKey
-	if hasOverrideAPIKey {
-		apiKey = overrideAPIKey
-	} else if requireAPIKeyPairing {
-		apiKey = ""
-	}
-	baseURL := envBaseURL
-	if hasOverrideBaseURL {
-		baseURL = overrideBaseURL
-	}
-	return apiKey, baseURL
-}
-
-func buildResolvedRuntimeSettingsView(settings resolvedRuntimeSettings) llmRuntimeSettingsView {
+func rcToView(rc *llm.ResolvedLLMConfig) llmRuntimeSettingsView {
 	return llmRuntimeSettingsView{
-		Provider:         valueStringPtr(settings.Provider),
-		Model:            valueStringPtr(settings.Model),
-		LowModel:         valueStringPtr(settings.LowModel),
-		MidModel:         valueStringPtr(settings.MidModel),
-		HighModel:        valueStringPtr(settings.HighModel),
-		DefaultMaxTokens: valueIntPtr(settings.DefaultMaxTokens),
-		OpenAIAPIKey:     toSecretField(settings.OpenAIAPIKey),
-		OpenAIBaseURL:    valueStringPtr(settings.OpenAIBaseURL),
-		AnthropicAPIKey:  toSecretField(settings.AnthropicAPIKey),
-		AnthropicBaseURL: valueStringPtr(settings.AnthropicBaseURL),
-		CustomLLMAPIKey:  toSecretField(settings.CustomLLMAPIKey),
-		CustomLLMBaseURL: valueStringPtr(settings.CustomLLMBaseURL),
+		Provider:         valueStringPtr(rc.Provider),
+		Model:            valueStringPtr(rc.Model),
+		LowModel:         valueStringPtr(rc.LowModel),
+		MidModel:         valueStringPtr(rc.MidModel),
+		HighModel:        valueStringPtr(rc.HighModel),
+		DefaultMaxTokens: valueIntPtr(rc.DefaultMaxTokens),
+		OpenAIAPIKey:     toSecretField(rc.OpenAIAPIKey),
+		OpenAIBaseURL:    valueStringPtr(rc.OpenAIBaseURL),
+		AnthropicAPIKey:  toSecretField(rc.AnthropicAPIKey),
+		AnthropicBaseURL: valueStringPtr(rc.AnthropicBaseURL),
+		CustomLLMAPIKey:  toSecretField(rc.CustomLLMAPIKey),
+		CustomLLMBaseURL: valueStringPtr(rc.CustomLLMBaseURL),
 	}
 }
 
-func buildRuntimeCapabilitiesView(settings resolvedRuntimeSettings) runtimeCapabilitiesView {
+func buildCapabilitiesView(rc *llm.ResolvedLLMConfig) runtimeCapabilitiesView {
 	return runtimeCapabilitiesView{
 		AllowedProviders: []string{"mock", "openai", "anthropic", "custom"},
 		ProviderAvailability: map[string]bool{
 			"mock":      true,
-			"openai":    settings.OpenAIAPIKey != "",
-			"anthropic": settings.AnthropicAPIKey != "",
-			"custom":    settings.CustomLLMBaseURL != "",
+			"openai":    rc.OpenAIAPIKey != "",
+			"anthropic": rc.AnthropicAPIKey != "",
+			"custom":    rc.CustomLLMBaseURL != "",
 		},
 		SupportsSensitiveOverrides: true,
-	}
-}
-
-func defaultProviderModel(cfg *config.Config, provider string) string {
-	switch provider {
-	case "openai":
-		return strings.TrimSpace(cfg.OpenAIModel)
-	case "anthropic":
-		return strings.TrimSpace(cfg.AnthropicModel)
-	case "custom":
-		return strings.TrimSpace(cfg.CustomLLMModel)
-	default:
-		return strings.TrimSpace(cfg.MockLLMModel)
 	}
 }
 

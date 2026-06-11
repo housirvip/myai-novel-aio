@@ -9,9 +9,12 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"myai-novel-go/internal/config"
 	"myai-novel-go/internal/db/models"
 	"myai-novel-go/internal/domain/shared"
+	usersettings "myai-novel-go/internal/domain/user_settings"
 	"myai-novel-go/internal/domain/workflows"
+	"myai-novel-go/internal/llm"
 )
 
 type TaskView struct {
@@ -38,6 +41,9 @@ type Service struct {
 	db     *gorm.DB
 	logger *zap.Logger
 
+	cfg            *config.Config
+	userSettingsSvc *usersettings.Service
+
 	plan         *workflows.PlanWorkflow
 	draft        *workflows.DraftWorkflow
 	review       *workflows.ReviewWorkflow
@@ -48,11 +54,12 @@ type Service struct {
 
 func NewService(
 	db *gorm.DB, logger *zap.Logger,
+	cfg *config.Config, userSettingsSvc *usersettings.Service,
 	plan *workflows.PlanWorkflow, draft *workflows.DraftWorkflow,
 	review *workflows.ReviewWorkflow, repair *workflows.RepairWorkflow,
 	approve *workflows.ApproveWorkflow, stageSummary *workflows.StageSummaryWorkflow,
 ) *Service {
-	return &Service{db: db, logger: logger,
+	return &Service{db: db, logger: logger, cfg: cfg, userSettingsSvc: userSettingsSvc,
 		plan: plan, draft: draft, review: review, repair: repair, approve: approve, stageSummary: stageSummary}
 }
 
@@ -170,6 +177,19 @@ func (s *Service) ExecuteClaimedTask(ctx context.Context, taskID int64, leaseTok
 	return nil
 }
 
+func (s *Service) reResolveLLMConfig(ctx context.Context, rc *llm.ResolvedLLMConfig) *llm.ResolvedLLMConfig {
+	if rc == nil || rc.ActorUserID == 0 {
+		return rc
+	}
+	overrides, err := s.userSettingsSvc.Get(ctx, rc.ActorUserID)
+	if err != nil {
+		s.logger.Warn("workflow.task.user_settings_unavailable", zap.Int64("userId", rc.ActorUserID), zap.Error(err))
+	}
+	resolved := usersettings.ResolveForRequest(s.cfg, overrides, rc.Provider, rc.LowModel, rc.MidModel, rc.HighModel)
+	resolved.ActorUserID = rc.ActorUserID
+	return resolved
+}
+
 func (s *Service) runWorkflow(ctx context.Context, workflowType, payload string, notify workflows.StageNotifier) (any, error) {
 	switch workflowType {
 	case shared.WorkflowTaskTypePlan:
@@ -177,36 +197,42 @@ func (s *Service) runWorkflow(ctx context.Context, workflowType, payload string,
 		if err := json.Unmarshal([]byte(payload), &in); err != nil {
 			return nil, err
 		}
+		in.LLMConfig = s.reResolveLLMConfig(ctx, in.LLMConfig)
 		return s.plan.Run(ctx, in, notify)
 	case shared.WorkflowTaskTypeDraft:
 		var in workflows.DraftInput
 		if err := json.Unmarshal([]byte(payload), &in); err != nil {
 			return nil, err
 		}
+		in.LLMConfig = s.reResolveLLMConfig(ctx, in.LLMConfig)
 		return s.draft.Run(ctx, in, notify)
 	case shared.WorkflowTaskTypeReview:
 		var in workflows.ReviewInput
 		if err := json.Unmarshal([]byte(payload), &in); err != nil {
 			return nil, err
 		}
+		in.LLMConfig = s.reResolveLLMConfig(ctx, in.LLMConfig)
 		return s.review.Run(ctx, in, notify)
 	case shared.WorkflowTaskTypeRepair:
 		var in workflows.RepairInput
 		if err := json.Unmarshal([]byte(payload), &in); err != nil {
 			return nil, err
 		}
+		in.LLMConfig = s.reResolveLLMConfig(ctx, in.LLMConfig)
 		return s.repair.Run(ctx, in, notify)
 	case shared.WorkflowTaskTypeApprove:
 		var in workflows.ApproveInput
 		if err := json.Unmarshal([]byte(payload), &in); err != nil {
 			return nil, err
 		}
+		in.LLMConfig = s.reResolveLLMConfig(ctx, in.LLMConfig)
 		return s.approve.Run(ctx, in, notify)
 	case shared.WorkflowTaskTypeAuthorIntent:
 		var in workflows.AuthorIntentInput
 		if err := json.Unmarshal([]byte(payload), &in); err != nil {
 			return nil, err
 		}
+		in.LLMConfig = s.reResolveLLMConfig(ctx, in.LLMConfig)
 		return s.plan.GenerateAuthorIntent(ctx, in, notify)
 	default:
 		return nil, fmt.Errorf("unsupported workflow type: %s", workflowType)

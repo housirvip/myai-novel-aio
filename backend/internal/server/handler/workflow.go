@@ -2,30 +2,56 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
+	"myai-novel-go/internal/config"
 	"myai-novel-go/internal/domain/shared"
+	usersettings "myai-novel-go/internal/domain/user_settings"
 	"myai-novel-go/internal/domain/workflows"
+	"myai-novel-go/internal/llm"
 	"myai-novel-go/internal/server/middleware"
 	"myai-novel-go/internal/workflow"
 )
 
 type WorkflowHandler struct {
-	plan         *workflows.PlanWorkflow
-	draft        *workflows.DraftWorkflow
-	review       *workflows.ReviewWorkflow
-	repair       *workflows.RepairWorkflow
-	approve      *workflows.ApproveWorkflow
-	stageSummary *workflows.StageSummaryWorkflow
-	tasks        *workflow.Service
+	cfg            *config.Config
+	userSettingsSvc *usersettings.Service
+	plan           *workflows.PlanWorkflow
+	draft          *workflows.DraftWorkflow
+	review         *workflows.ReviewWorkflow
+	repair         *workflows.RepairWorkflow
+	approve        *workflows.ApproveWorkflow
+	stageSummary   *workflows.StageSummaryWorkflow
+	tasks          *workflow.Service
 }
 
 func NewWorkflowHandler(
+	cfg *config.Config, userSettingsSvc *usersettings.Service,
 	plan *workflows.PlanWorkflow, draft *workflows.DraftWorkflow,
 	review *workflows.ReviewWorkflow, repair *workflows.RepairWorkflow,
 	approve *workflows.ApproveWorkflow, stageSummary *workflows.StageSummaryWorkflow,
 	tasks *workflow.Service,
 ) *WorkflowHandler {
-	return &WorkflowHandler{plan: plan, draft: draft, review: review, repair: repair, approve: approve, stageSummary: stageSummary, tasks: tasks}
+	return &WorkflowHandler{
+		cfg: cfg, userSettingsSvc: userSettingsSvc,
+		plan: plan, draft: draft, review: review, repair: repair,
+		approve: approve, stageSummary: stageSummary, tasks: tasks,
+	}
+}
+
+func (h *WorkflowHandler) resolveLLMConfig(c *gin.Context, provider, lowModel, midModel, highModel string) *llm.ResolvedLLMConfig {
+	actor := middleware.GetActor(c)
+	var overrides *usersettings.RuntimeOverrides
+	if actor.Kind == middleware.ActorUser {
+		var err error
+		overrides, err = h.userSettingsSvc.Get(c.Request.Context(), actor.UserID)
+		if err != nil {
+			middleware.Logger(c).Warn("user_settings_unavailable", zap.Int64("userId", actor.UserID), zap.Error(err))
+		}
+	}
+	rc := usersettings.ResolveForRequest(h.cfg, overrides, provider, lowModel, midModel, highModel)
+	rc.ActorUserID = actor.UserID
+	return rc
 }
 
 func (h *WorkflowHandler) Register(r *gin.RouterGroup) {
@@ -55,6 +81,7 @@ func (h *WorkflowHandler) runPlan(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
 	res, err := h.plan.Run(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -69,6 +96,7 @@ func (h *WorkflowHandler) runDraft(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
 	res, err := h.draft.Run(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -83,6 +111,7 @@ func (h *WorkflowHandler) runReview(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
 	res, err := h.review.Run(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -97,6 +126,7 @@ func (h *WorkflowHandler) runRepair(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
 	res, err := h.repair.Run(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -111,6 +141,7 @@ func (h *WorkflowHandler) runApprove(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
 	res, err := h.approve.Run(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -125,6 +156,7 @@ func (h *WorkflowHandler) runStageSummary(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
 	res, err := h.stageSummary.Run(c.Request.Context(), in)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -139,6 +171,7 @@ func (h *WorkflowHandler) startPlan(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel).Sanitized()
 	t, err := h.tasks.StartPlan(c.Request.Context(), in)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -153,6 +186,7 @@ func (h *WorkflowHandler) startDraft(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel).Sanitized()
 	t, err := h.tasks.StartDraft(c.Request.Context(), in)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -167,6 +201,7 @@ func (h *WorkflowHandler) startReview(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel).Sanitized()
 	t, err := h.tasks.StartReview(c.Request.Context(), in)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -181,6 +216,7 @@ func (h *WorkflowHandler) startRepair(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel).Sanitized()
 	t, err := h.tasks.StartRepair(c.Request.Context(), in)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -195,8 +231,8 @@ func (h *WorkflowHandler) startApprove(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
 	if in.DryRun {
-		// dryRun 不入异步,直接同步执行
 		res, err := h.approve.Run(c.Request.Context(), in, workflows.NoopNotifier)
 		if err != nil {
 			middleware.AbortWithError(c, err)
@@ -205,6 +241,7 @@ func (h *WorkflowHandler) startApprove(c *gin.Context) {
 		ok(c, res)
 		return
 	}
+	in.LLMConfig = in.LLMConfig.Sanitized()
 	t, err := h.tasks.StartApprove(c.Request.Context(), in)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -233,6 +270,7 @@ func (h *WorkflowHandler) runAuthorIntent(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel)
 	res, err := h.plan.GenerateAuthorIntent(c.Request.Context(), in, workflows.NoopNotifier)
 	if err != nil {
 		middleware.AbortWithError(c, err)
@@ -247,6 +285,7 @@ func (h *WorkflowHandler) startAuthorIntent(c *gin.Context) {
 		middleware.AbortWithError(c, err)
 		return
 	}
+	in.LLMConfig = h.resolveLLMConfig(c, in.Provider, in.LowModel, in.MidModel, in.HighModel).Sanitized()
 	t, err := h.tasks.StartAuthorIntent(c.Request.Context(), in)
 	if err != nil {
 		middleware.AbortWithError(c, err)
