@@ -31,8 +31,8 @@ dev-frontend:
 dev-backend:
 	cd backend && go run ./cmd/server
 
-dev-tauri:
-	cd tauri && cargo tauri dev
+dev-tauri: build-backend
+	cd tauri && CI=true cargo tauri dev
 
 build: build-frontend build-backend
 
@@ -60,9 +60,7 @@ clean-tauri:
 	rm -rf tauri/binaries
 
 build-tauri: build-backend
-	@mkdir -p tauri/binaries
-	@cp backend/bin/server tauri/binaries/server-$$(rustc -vV | grep host | cut -d' ' -f2)
-	cd tauri && cargo tauri build
+	cd tauri && CI=true cargo tauri build
 
 docker:
 	docker build -t myai-novel-aio:dev .
